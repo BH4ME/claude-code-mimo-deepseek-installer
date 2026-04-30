@@ -1,0 +1,213 @@
+# Claude Code MiMo / DeepSeek Installer
+
+一键安装 Claude Code，并把 Claude Code 配置为使用 Xiaomi MiMo 或 DeepSeek 的 Anthropic-compatible API。
+
+脚本不会把你的 API key 提交、发布或上传到 GitHub。安装时可以交互式输入，也可以通过环境变量传入。
+
+API key 会保存在你本机的 `~/.claude/provider-switch.json`。MiMo 和 DeepSeek 会各自保留一份；切换 provider 时，脚本会把当前 provider 的 key 写入 Claude Code 实际读取的 `~/.claude/settings.json`。
+
+## macOS / Linux 一键部署
+
+Release 一键安装：
+
+```bash
+curl -fsSL https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/install.sh | bash
+```
+
+非交互式 Release 安装：
+
+```bash
+curl -fsSL https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/install.sh | MIMO_API_KEY="<your-mimo-api-key>" DEEPSEEK_API_KEY="<your-deepseek-api-key>" bash
+```
+
+交互式安装：
+
+```bash
+./install.sh
+```
+
+非交互式安装：
+
+```bash
+MIMO_API_KEY="<your-mimo-api-key>" ./install.sh
+```
+
+同时保存 DeepSeek key，之后可直接切换：
+
+```bash
+MIMO_API_KEY="<your-mimo-api-key>" DEEPSEEK_API_KEY="<your-deepseek-api-key>" ./install.sh
+```
+
+指定模型：
+
+```bash
+MIMO_API_KEY="<your-mimo-api-key>" MIMO_MODEL="mimo-v2-flash" ./install.sh
+```
+
+只安装 Claude Code 和切换工具，暂不写入 API key：
+
+```bash
+./install.sh --skip-api-key
+```
+
+## Windows 一键部署
+
+PowerShell Release 一键安装：
+
+```powershell
+irm https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/install.ps1 | iex
+```
+
+PowerShell 非交互式 Release 安装：
+
+```powershell
+$env:MIMO_API_KEY="<your-mimo-api-key>"
+$env:DEEPSEEK_API_KEY="<your-deepseek-api-key>"
+irm https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/install.ps1 | iex
+```
+
+PowerShell 交互式安装：
+
+```powershell
+.\install.ps1
+```
+
+PowerShell 非交互式安装：
+
+```powershell
+$env:MIMO_API_KEY="<your-mimo-api-key>"
+.\install.ps1
+```
+
+同时保存 DeepSeek key：
+
+```powershell
+$env:MIMO_API_KEY="<your-mimo-api-key>"
+$env:DEEPSEEK_API_KEY="<your-deepseek-api-key>"
+.\install.ps1
+```
+
+也可以用 CMD：
+
+```bat
+set MIMO_API_KEY=<your-mimo-api-key>
+set DEEPSEEK_API_KEY=<your-deepseek-api-key>
+install.bat
+```
+
+如果 PowerShell 执行策略阻止脚本，可以临时允许当前进程执行：
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\install.ps1
+```
+
+## 配置内容
+
+脚本会写入 `~/.claude/settings.json`：
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api.xiaomimimo.com/anthropic",
+    "ANTHROPIC_AUTH_TOKEN": "<your-mimo-api-key>",
+    "ANTHROPIC_MODEL": "mimo-v2-flash",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "mimo-v2-flash",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "mimo-v2-flash",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "mimo-v2-flash"
+  }
+}
+```
+
+## 切换模型
+
+macOS / Linux：
+
+```bash
+claude-mimo flash
+```
+
+也可以用统一切换器切 provider 和模型：
+
+```bash
+claude-provider mimo flash
+claude-provider deepseek pro
+claude-provider deepseek flash
+```
+
+如果没有在安装时传入 DeepSeek key，第一次切 DeepSeek 时传一次即可，之后脚本会保存在本机 `~/.claude/provider-switch.json`：
+
+```bash
+DEEPSEEK_API_KEY="<your-deepseek-api-key>" claude-provider deepseek pro
+```
+
+也可以直接传完整模型名：
+
+```bash
+claude-provider mimo mimo-v2-flash
+claude-provider deepseek deepseek-v4-pro
+```
+
+如果终端找不到命令，使用完整路径：
+
+```bash
+~/.local/bin/claude-provider deepseek pro
+```
+
+Windows：
+
+```powershell
+claude-provider mimo flash
+claude-provider deepseek pro
+```
+
+Windows 第一次写入 DeepSeek key：
+
+```powershell
+$env:DEEPSEEK_API_KEY="<your-deepseek-api-key>"
+claude-provider deepseek pro
+```
+
+如果终端找不到 `claude-provider`，重新打开终端，或使用完整路径：
+
+```powershell
+& "$HOME\.claude-provider\claude-provider.cmd" deepseek pro
+```
+
+切换后重新运行：
+
+```bash
+claude
+```
+
+## 更换 API key
+
+macOS / Linux：
+
+```bash
+claude-provider-key mimo
+claude-provider-key deepseek
+```
+
+也可以直接传入：
+
+```bash
+claude-provider-key mimo "<new-mimo-api-key>"
+DEEPSEEK_API_KEY="<new-deepseek-api-key>" claude-provider-key deepseek
+```
+
+Windows：
+
+```powershell
+claude-provider-key mimo
+claude-provider-key deepseek
+```
+
+或者：
+
+```powershell
+$env:DEEPSEEK_API_KEY="<new-deepseek-api-key>"
+claude-provider-key deepseek
+```
+
+如果正在使用对应 provider，更换 key 后会同时更新 `~/.claude/settings.json`；如果不是当前 provider，只会先保存，等你下次 `claude-provider deepseek pro` 或 `claude-provider mimo flash` 时生效。
