@@ -52,6 +52,8 @@ MIMO_API_KEY="<your-mimo-api-key>" MIMO_MODEL="mimo-v2-flash" ./install.sh
 
 ## Windows 一键部署
 
+Windows 会使用 Claude Code 官方 native installer，不需要提前安装 Node.js 或 npm。
+
 PowerShell Release 一键安装：
 
 ```powershell
@@ -100,6 +102,19 @@ install.bat
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\install.ps1
+```
+
+如果运行 `claude` 提示“16 位程序不能运行”，通常是旧版 npm 全局安装留下了错误的 Windows 入口。先在 PowerShell 或 CMD 里执行：
+
+```powershell
+npm uninstall -g @anthropic-ai/claude-code
+```
+
+如果没有 npm 或卸载失败，可以跳过这一步，然后重新运行本安装脚本。安装后重新打开终端，再执行：
+
+```powershell
+claude --version
+claude
 ```
 
 ## 配置内容
