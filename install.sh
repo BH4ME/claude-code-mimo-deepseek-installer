@@ -265,6 +265,10 @@ install_claude_code() {
   rm -f "${installer}"
   echo "Official Claude Code installer failed. Falling back to npm install..."
 
+  if ! command -v npm >/dev/null 2>&1; then
+    install_npm_for_fallback
+  fi
+
   if command -v npm >/dev/null 2>&1; then
     npm install -g @anthropic-ai/claude-code
     return
@@ -274,6 +278,60 @@ install_claude_code() {
   echo "The official installer may be blocked, and npm is not installed." >&2
   echo "Install Node.js/npm first, then rerun this script, or rerun with a network/proxy that can access https://claude.ai/install.sh." >&2
   exit 1
+}
+
+install_npm_for_fallback() {
+  echo "npm is not installed. Trying to install Node.js/npm for fallback..."
+
+  if command -v apt-get >/dev/null 2>&1; then
+    if command -v sudo >/dev/null 2>&1; then
+      sudo apt-get update
+      sudo apt-get install -y nodejs npm
+    elif [ "$(id -u)" = "0" ]; then
+      apt-get update
+      apt-get install -y nodejs npm
+    else
+      echo "apt-get is available, but sudo is not installed and this user is not root." >&2
+      echo "Run: su -c 'apt-get update && apt-get install -y nodejs npm'" >&2
+    fi
+    return
+  fi
+
+  if command -v dnf >/dev/null 2>&1; then
+    if command -v sudo >/dev/null 2>&1; then
+      sudo dnf install -y nodejs npm
+    elif [ "$(id -u)" = "0" ]; then
+      dnf install -y nodejs npm
+    else
+      echo "dnf is available, but sudo is not installed and this user is not root." >&2
+      echo "Run as root: dnf install -y nodejs npm" >&2
+    fi
+    return
+  fi
+
+  if command -v yum >/dev/null 2>&1; then
+    if command -v sudo >/dev/null 2>&1; then
+      sudo yum install -y nodejs npm
+    elif [ "$(id -u)" = "0" ]; then
+      yum install -y nodejs npm
+    else
+      echo "yum is available, but sudo is not installed and this user is not root." >&2
+      echo "Run as root: yum install -y nodejs npm" >&2
+    fi
+    return
+  fi
+
+  if command -v apk >/dev/null 2>&1; then
+    if [ "$(id -u)" = "0" ]; then
+      apk add --no-cache nodejs npm
+    else
+      echo "apk is available, but this user is not root." >&2
+      echo "Run as root: apk add --no-cache nodejs npm" >&2
+    fi
+    return
+  fi
+
+  echo "No supported package manager found for automatic npm installation." >&2
 }
 
 if [ "${SKIP_MIMO_CONFIG}" != "1" ] && [ -z "${MIMO_API_KEY:-}" ]; then

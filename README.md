@@ -52,7 +52,7 @@ MIMO_API_KEY="<your-mimo-api-key>" MIMO_MODEL="mimo-v2-flash" ./install.sh
 ./install.sh --skip-api-key
 ```
 
-如果 Linux 上出现 `curl: (22) The requested URL returned error: 403`，这是访问 Claude 官方安装脚本被拒。新版脚本会自动尝试 npm 兜底；如果你的机器没有 npm，可以先安装 Node.js/npm 后重试，或换一个能访问 `https://claude.ai/install.sh` 的网络环境。
+如果 Linux 上出现 `curl: (22) The requested URL returned error: 403`，这是访问 Claude 官方安装脚本被拒。新版脚本会自动尝试 npm 兜底；如果你的机器没有 npm，会尝试通过 `apt-get`、`dnf`、`yum` 或 `apk` 自动安装 Node.js/npm 后继续。若系统没有这些包管理器或当前用户没有安装权限，再手动安装 Node.js/npm 后重试，或换一个能访问 `https://claude.ai/install.sh` 的网络环境。
 
 ## Windows 一键部署
 
