@@ -269,15 +269,96 @@ install_claude_code() {
     install_npm_for_fallback
   fi
 
-  if command -v npm >/dev/null 2>&1; then
-    npm install -g @anthropic-ai/claude-code
+  if npm_supports_claude_code && npm_install_claude_code; then
+    return
+  fi
+
+  echo "System npm could not install Claude Code. Installing a user-local Node.js runtime..."
+  install_user_node
+
+  if npm_supports_claude_code && npm_install_claude_code; then
     return
   fi
 
   echo "Could not install Claude Code automatically." >&2
-  echo "The official installer may be blocked, and npm is not installed." >&2
-  echo "Install Node.js/npm first, then rerun this script, or rerun with a network/proxy that can access https://claude.ai/install.sh." >&2
+  echo "The official installer may be blocked, and npm could not install Claude Code." >&2
+  echo "Install Node.js 18+ first, then rerun this script, or rerun with a network/proxy that can access https://claude.ai/install.sh." >&2
   exit 1
+}
+
+npm_supports_claude_code() {
+  command -v node >/dev/null 2>&1 || return 1
+  command -v npm >/dev/null 2>&1 || return 1
+
+  local major
+  major="$(node -v 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/' || echo 0)"
+  case "${major}" in
+    ''|*[!0-9]*)
+      major="0"
+      ;;
+  esac
+  [ "${major}" -ge 18 ]
+}
+
+npm_install_claude_code() {
+  local npm_prefix
+  npm_prefix="${NPM_GLOBAL_PREFIX:-${HOME}/.local}"
+
+  mkdir -p "${npm_prefix}/bin"
+  npm config set prefix "${npm_prefix}" >/dev/null 2>&1 || true
+  npm install -g @anthropic-ai/claude-code
+
+  if [[ ":${PATH}:" != *":${npm_prefix}/bin:"* ]]; then
+    echo "Add this to your shell profile if claude is not found:"
+    echo "export PATH=\"${npm_prefix}/bin:\$PATH\""
+  fi
+}
+
+install_user_node() {
+  local os arch version base_dir tarball url strip_dir
+
+  os="$(uname -s)"
+  arch="$(uname -m)"
+  version="${NODE_VERSION_FOR_CLAUDE:-22.11.0}"
+  base_dir="${HOME}/.local/share/claude-code-mimo/node"
+  mkdir -p "${base_dir}" "${HOME}/.local/bin"
+
+  case "${os}" in
+    Linux) os="linux" ;;
+    Darwin) os="darwin" ;;
+    *)
+      echo "Unsupported OS for user-local Node.js install: ${os}" >&2
+      return 1
+      ;;
+  esac
+
+  case "${arch}" in
+    x86_64|amd64) arch="x64" ;;
+    arm64|aarch64) arch="arm64" ;;
+    *)
+      echo "Unsupported architecture for user-local Node.js install: ${arch}" >&2
+      return 1
+      ;;
+  esac
+
+  strip_dir="node-v${version}-${os}-${arch}"
+  tarball="$(mktemp)"
+  url="https://nodejs.org/dist/v${version}/${strip_dir}.tar.xz"
+
+  echo "Downloading Node.js ${version} from ${url}"
+  curl -fsSL "${url}" -o "${tarball}"
+  rm -rf "${base_dir}/${strip_dir}"
+  tar -xJf "${tarball}" -C "${base_dir}"
+  rm -f "${tarball}"
+
+  ln -sf "${base_dir}/${strip_dir}/bin/node" "${HOME}/.local/bin/node"
+  ln -sf "${base_dir}/${strip_dir}/bin/npm" "${HOME}/.local/bin/npm"
+  ln -sf "${base_dir}/${strip_dir}/bin/npx" "${HOME}/.local/bin/npx"
+  export PATH="${HOME}/.local/bin:${PATH}"
+  export NPM_GLOBAL_PREFIX="${HOME}/.local"
+  hash -r 2>/dev/null || true
+
+  echo "User-local Node.js installed to: ${base_dir}/${strip_dir}"
 }
 
 install_npm_for_fallback() {
