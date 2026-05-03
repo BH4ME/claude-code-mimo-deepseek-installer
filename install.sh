@@ -253,6 +253,29 @@ EOF
 EOF
 }
 
+install_claude_code() {
+  local installer
+  installer="$(mktemp)"
+
+  if curl -fsSL https://claude.ai/install.sh -o "${installer}" && bash "${installer}"; then
+    rm -f "${installer}"
+    return
+  fi
+
+  rm -f "${installer}"
+  echo "Official Claude Code installer failed. Falling back to npm install..."
+
+  if command -v npm >/dev/null 2>&1; then
+    npm install -g @anthropic-ai/claude-code
+    return
+  fi
+
+  echo "Could not install Claude Code automatically." >&2
+  echo "The official installer may be blocked, and npm is not installed." >&2
+  echo "Install Node.js/npm first, then rerun this script, or rerun with a network/proxy that can access https://claude.ai/install.sh." >&2
+  exit 1
+}
+
 if [ "${SKIP_MIMO_CONFIG}" != "1" ] && [ -z "${MIMO_API_KEY:-}" ]; then
   if [ ! -r /dev/tty ]; then
     echo "MiMo API key is required. Set MIMO_API_KEY for non-interactive installs."
@@ -272,7 +295,7 @@ if [ "${SKIP_MIMO_CONFIG}" != "1" ] && [ -z "${MIMO_API_KEY:-}" ]; then
 fi
 
 echo "Installing or updating Claude Code..."
-curl -fsSL https://claude.ai/install.sh | bash
+install_claude_code
 
 if [ "${SKIP_MIMO_CONFIG}" != "1" ]; then
   SETTINGS_DIR="${HOME}/.claude"

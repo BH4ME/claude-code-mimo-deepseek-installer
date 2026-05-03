@@ -8,7 +8,7 @@ API key 会保存在你本机的 `~/.claude/provider-switch.json`。MiMo 和 Dee
 
 ## macOS / Linux 一键部署
 
-macOS / Linux 会使用 Claude Code 官方 native installer，不需要提前安装 Node.js 或 npm。配置文件写入优先使用系统自带的 `python3`，没有 `python3` 时会尝试使用 `node`。
+macOS / Linux 会优先使用 Claude Code 官方 native installer，不需要提前安装 Node.js 或 npm。若 `https://claude.ai/install.sh` 被网络或地区策略拦截，脚本会在本机已有 `npm` 时自动回退到 `npm install -g @anthropic-ai/claude-code`。配置文件写入优先使用系统自带的 `python3`，没有 `python3` 时会尝试使用 `node`。
 
 Release 一键安装：
 
@@ -51,6 +51,8 @@ MIMO_API_KEY="<your-mimo-api-key>" MIMO_MODEL="mimo-v2-flash" ./install.sh
 ```bash
 ./install.sh --skip-api-key
 ```
+
+如果 Linux 上出现 `curl: (22) The requested URL returned error: 403`，这是访问 Claude 官方安装脚本被拒。新版脚本会自动尝试 npm 兜底；如果你的机器没有 npm，可以先安装 Node.js/npm 后重试，或换一个能访问 `https://claude.ai/install.sh` 的网络环境。
 
 ## Windows 一键部署
 
