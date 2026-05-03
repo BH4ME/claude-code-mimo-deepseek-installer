@@ -8,6 +8,8 @@ API key 会保存在你本机的 `~/.claude/provider-switch.json`。MiMo 和 Dee
 
 ## macOS / Linux 一键部署
 
+macOS / Linux 会使用 Claude Code 官方 native installer，不需要提前安装 Node.js 或 npm。配置文件写入优先使用系统自带的 `python3`，没有 `python3` 时会尝试使用 `node`。
+
 Release 一键安装：
 
 ```bash

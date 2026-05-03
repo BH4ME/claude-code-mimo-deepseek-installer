@@ -69,83 +69,18 @@ install_provider_key_setter() {
 }
 
 install_mimo_switcher() {
-  local install_dir target
+  local install_dir target source_url
 
   install_dir="${HOME}/.local/bin"
   target="${install_dir}/claude-mimo"
+  source_url="${MIMO_SWITCHER_URL:-https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/switch-mimo.sh}"
 
   mkdir -p "${install_dir}"
 
   if [ -f "./switch-mimo.sh" ]; then
     cp "./switch-mimo.sh" "${target}"
   else
-    cat > "${target}" <<'SWITCHER'
-#!/usr/bin/env bash
-set -euo pipefail
-
-MODEL_ARG="${1:-}"
-BASE_URL="${MIMO_ANTHROPIC_BASE_URL:-https://api.xiaomimimo.com/anthropic}"
-SETTINGS_FILE="${HOME}/.claude/settings.json"
-
-case "${MODEL_ARG}" in
-  flash|v2-flash|mimo-v2-flash)
-    MODEL="mimo-v2-flash"
-    ;;
-  --help|-h|"")
-    echo "Usage: claude-mimo <flash|model-name>"
-    echo ""
-    echo "Switch Claude Code to a Xiaomi MiMo model."
-    exit 0
-    ;;
-  *)
-    MODEL="${MODEL_ARG}"
-    ;;
-esac
-
-mkdir -p "$(dirname "${SETTINGS_FILE}")"
-
-export SETTINGS_FILE
-export MODEL
-export BASE_URL
-
-node <<'NODE'
-const fs = require("fs");
-
-const settingsFile = process.env.SETTINGS_FILE;
-const model = process.env.MODEL;
-const baseUrl = process.env.BASE_URL;
-
-let settings = {};
-if (fs.existsSync(settingsFile)) {
-  try {
-    settings = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
-  } catch (error) {
-    const backup = `${settingsFile}.bak.${Date.now()}`;
-    fs.copyFileSync(settingsFile, backup);
-    console.warn(`Existing settings were invalid JSON. Backed up to ${backup}`);
-  }
-}
-
-settings.env = {
-  ...(settings.env || {}),
-  ANTHROPIC_BASE_URL: baseUrl,
-  ANTHROPIC_MODEL: model,
-  ANTHROPIC_DEFAULT_HAIKU_MODEL: model,
-  ANTHROPIC_DEFAULT_SONNET_MODEL: model,
-  ANTHROPIC_DEFAULT_OPUS_MODEL: model,
-};
-
-if (settings.includeCoAuthoredBy === undefined) {
-  settings.includeCoAuthoredBy = false;
-}
-
-fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
-NODE
-
-chmod 600 "${SETTINGS_FILE}" || true
-echo "Claude Code MiMo model set to: ${MODEL}"
-echo "Run: claude"
-SWITCHER
+    curl -fsSL "${source_url}" -o "${target}"
   fi
 
   chmod +x "${target}"
@@ -157,15 +92,166 @@ SWITCHER
   echo "Switch models with: ${target} flash"
 }
 
-if ! command -v node >/dev/null 2>&1; then
-  echo "Node.js is required. Install Node.js first, then rerun this installer."
-  exit 1
-fi
+write_initial_config() {
+  if command -v python3 >/dev/null 2>&1; then
+    python3 <<'PY'
+import json
+import os
+import shutil
+import time
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "npm is required. Install npm first, then rerun this installer."
-  exit 1
-fi
+settings_file = os.environ["SETTINGS_FILE"]
+provider_file = os.environ["PROVIDER_FILE"]
+token = os.environ["MIMO_API_KEY"]
+deepseek_token = os.environ.get("DEEPSEEK_API_KEY", "")
+model = os.environ["MODEL"]
+base_url = os.environ["BASE_URL"]
+deepseek_base_url = os.environ["DEEPSEEK_BASE_URL"]
+
+def read_json(path, label):
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as handle:
+            return json.load(handle)
+    except Exception:
+        backup = f"{path}.bak.{int(time.time() * 1000)}"
+        shutil.copy2(path, backup)
+        print(f"Existing {label} JSON was invalid. Backed up to {backup}")
+        return {}
+
+settings = read_json(settings_file, "settings")
+settings["env"] = {
+    **settings.get("env", {}),
+    "ANTHROPIC_BASE_URL": base_url,
+    "ANTHROPIC_AUTH_TOKEN": token,
+    "ANTHROPIC_MODEL": model,
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": model,
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": model,
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": model,
+}
+settings.setdefault("includeCoAuthoredBy", False)
+
+os.makedirs(os.path.dirname(settings_file), exist_ok=True)
+with open(settings_file, "w", encoding="utf-8") as handle:
+    json.dump(settings, handle, indent=2)
+    handle.write("\n")
+
+provider_config = read_json(provider_file, "provider config")
+provider_config["providers"] = provider_config.get("providers", {})
+provider_config["providers"]["mimo"] = {
+    **provider_config["providers"].get("mimo", {}),
+    "baseUrl": base_url,
+    "authToken": token,
+}
+if deepseek_token:
+    provider_config["providers"]["deepseek"] = {
+        **provider_config["providers"].get("deepseek", {}),
+        "baseUrl": deepseek_base_url,
+        "authToken": deepseek_token,
+    }
+provider_config["activeProvider"] = "mimo"
+provider_config["activeModel"] = model
+with open(provider_file, "w", encoding="utf-8") as handle:
+    json.dump(provider_config, handle, indent=2)
+    handle.write("\n")
+PY
+    return
+  fi
+
+  if command -v node >/dev/null 2>&1; then
+    node <<'NODE'
+const fs = require("fs");
+
+const settingsFile = process.env.SETTINGS_FILE;
+const providerFile = process.env.PROVIDER_FILE;
+const token = process.env.MIMO_API_KEY;
+const deepseekToken = process.env.DEEPSEEK_API_KEY || "";
+const model = process.env.MODEL;
+const baseUrl = process.env.BASE_URL;
+const deepseekBaseUrl = process.env.DEEPSEEK_BASE_URL;
+
+function readJson(file, label) {
+  if (!fs.existsSync(file)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (error) {
+    const backup = `${file}.bak.${Date.now()}`;
+    fs.copyFileSync(file, backup);
+    console.warn(`Existing ${label} JSON was invalid. Backed up to ${backup}`);
+    return {};
+  }
+}
+
+const settings = readJson(settingsFile, "settings");
+settings.env = {
+  ...(settings.env || {}),
+  ANTHROPIC_BASE_URL: baseUrl,
+  ANTHROPIC_AUTH_TOKEN: token,
+  ANTHROPIC_MODEL: model,
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: model,
+  ANTHROPIC_DEFAULT_SONNET_MODEL: model,
+  ANTHROPIC_DEFAULT_OPUS_MODEL: model,
+};
+if (settings.includeCoAuthoredBy === undefined) {
+  settings.includeCoAuthoredBy = false;
+}
+fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
+
+const providerConfig = readJson(providerFile, "provider config");
+providerConfig.providers = providerConfig.providers || {};
+providerConfig.providers.mimo = {
+  ...(providerConfig.providers.mimo || {}),
+  baseUrl,
+  authToken: token,
+};
+if (deepseekToken) {
+  providerConfig.providers.deepseek = {
+    ...(providerConfig.providers.deepseek || {}),
+    baseUrl: deepseekBaseUrl,
+    authToken: deepseekToken,
+  };
+}
+providerConfig.activeProvider = "mimo";
+providerConfig.activeModel = model;
+fs.writeFileSync(providerFile, `${JSON.stringify(providerConfig, null, 2)}\n`, { mode: 0o600 });
+NODE
+    return
+  fi
+
+  echo "Neither python3 nor node is available. Writing fresh Claude Code settings."
+  if [ -f "${SETTINGS_FILE}" ]; then
+    cp "${SETTINGS_FILE}" "${SETTINGS_FILE}.bak.$(date +%s)"
+  fi
+  if [ -f "${PROVIDER_FILE}" ]; then
+    cp "${PROVIDER_FILE}" "${PROVIDER_FILE}.bak.$(date +%s)"
+  fi
+  cat > "${SETTINGS_FILE}" <<EOF
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "${BASE_URL}",
+    "ANTHROPIC_AUTH_TOKEN": "${MIMO_API_KEY}",
+    "ANTHROPIC_MODEL": "${MODEL}",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "${MODEL}",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "${MODEL}",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "${MODEL}"
+  },
+  "includeCoAuthoredBy": false
+}
+EOF
+  cat > "${PROVIDER_FILE}" <<EOF
+{
+  "providers": {
+    "mimo": {
+      "baseUrl": "${BASE_URL}",
+      "authToken": "${MIMO_API_KEY}"
+    }
+  },
+  "activeProvider": "mimo",
+  "activeModel": "${MODEL}"
+}
+EOF
+}
 
 if [ "${SKIP_MIMO_CONFIG}" != "1" ] && [ -z "${MIMO_API_KEY:-}" ]; then
   if [ ! -r /dev/tty ]; then
@@ -186,7 +272,7 @@ if [ "${SKIP_MIMO_CONFIG}" != "1" ] && [ -z "${MIMO_API_KEY:-}" ]; then
 fi
 
 echo "Installing or updating Claude Code..."
-npm install -g @anthropic-ai/claude-code
+curl -fsSL https://claude.ai/install.sh | bash
 
 if [ "${SKIP_MIMO_CONFIG}" != "1" ]; then
   SETTINGS_DIR="${HOME}/.claude"
@@ -202,71 +288,7 @@ if [ "${SKIP_MIMO_CONFIG}" != "1" ]; then
   export BASE_URL
   export DEEPSEEK_BASE_URL
 
-  node <<'NODE'
-const fs = require("fs");
-
-const settingsFile = process.env.SETTINGS_FILE;
-const providerFile = process.env.PROVIDER_FILE;
-const token = process.env.MIMO_API_KEY;
-const deepseekToken = process.env.DEEPSEEK_API_KEY || "";
-const model = process.env.MODEL;
-const baseUrl = process.env.BASE_URL;
-const deepseekBaseUrl = process.env.DEEPSEEK_BASE_URL;
-
-let settings = {};
-if (fs.existsSync(settingsFile)) {
-  try {
-    settings = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
-  } catch (error) {
-    const backup = `${settingsFile}.bak.${Date.now()}`;
-    fs.copyFileSync(settingsFile, backup);
-    console.warn(`Existing settings were invalid JSON. Backed up to ${backup}`);
-  }
-}
-
-settings.env = {
-  ...(settings.env || {}),
-  ANTHROPIC_BASE_URL: baseUrl,
-  ANTHROPIC_AUTH_TOKEN: token,
-  ANTHROPIC_MODEL: model,
-  ANTHROPIC_DEFAULT_HAIKU_MODEL: model,
-  ANTHROPIC_DEFAULT_SONNET_MODEL: model,
-  ANTHROPIC_DEFAULT_OPUS_MODEL: model,
-};
-
-if (settings.includeCoAuthoredBy === undefined) {
-  settings.includeCoAuthoredBy = false;
-}
-
-fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
-
-let providerConfig = {};
-if (fs.existsSync(providerFile)) {
-  try {
-    providerConfig = JSON.parse(fs.readFileSync(providerFile, "utf8"));
-  } catch (error) {
-    const backup = `${providerFile}.bak.${Date.now()}`;
-    fs.copyFileSync(providerFile, backup);
-    console.warn(`Existing provider config was invalid JSON. Backed up to ${backup}`);
-  }
-}
-providerConfig.providers = providerConfig.providers || {};
-providerConfig.providers.mimo = {
-  ...(providerConfig.providers.mimo || {}),
-  baseUrl,
-  authToken: token,
-};
-if (deepseekToken) {
-  providerConfig.providers.deepseek = {
-    ...(providerConfig.providers.deepseek || {}),
-    baseUrl: deepseekBaseUrl,
-    authToken: deepseekToken,
-  };
-}
-providerConfig.activeProvider = "mimo";
-providerConfig.activeModel = model;
-fs.writeFileSync(providerFile, `${JSON.stringify(providerConfig, null, 2)}\n`, { mode: 0o600 });
-NODE
+  write_initial_config
 
   chmod 600 "${SETTINGS_FILE}" "${PROVIDER_FILE}" || true
 

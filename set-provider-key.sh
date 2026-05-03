@@ -67,7 +67,53 @@ export TOKEN
 export PROVIDER_FILE
 export SETTINGS_FILE
 
-node <<'NODE'
+if command -v python3 >/dev/null 2>&1; then
+  python3 <<'PY'
+import json
+import os
+import shutil
+import time
+
+provider = os.environ["PROVIDER"]
+token = os.environ["TOKEN"]
+provider_file = os.environ["PROVIDER_FILE"]
+settings_file = os.environ["SETTINGS_FILE"]
+
+def read_json(path):
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as handle:
+            return json.load(handle)
+    except Exception:
+        backup = f"{path}.bak.{int(time.time() * 1000)}"
+        shutil.copy2(path, backup)
+        print(f"Existing JSON was invalid. Backed up to {backup}")
+        return {}
+
+provider_config = read_json(provider_file)
+provider_config["providers"] = provider_config.get("providers", {})
+provider_config["providers"][provider] = {
+    **provider_config["providers"].get(provider, {}),
+    "authToken": token,
+}
+
+with open(provider_file, "w", encoding="utf-8") as handle:
+    json.dump(provider_config, handle, indent=2)
+    handle.write("\n")
+
+if provider_config.get("activeProvider") == provider and os.path.exists(settings_file):
+    settings = read_json(settings_file)
+    settings["env"] = {
+        **settings.get("env", {}),
+        "ANTHROPIC_AUTH_TOKEN": token,
+    }
+    with open(settings_file, "w", encoding="utf-8") as handle:
+        json.dump(settings, handle, indent=2)
+        handle.write("\n")
+PY
+elif command -v node >/dev/null 2>&1; then
+  node <<'NODE'
 const fs = require("fs");
 
 const provider = process.env.PROVIDER;
@@ -105,6 +151,10 @@ if (providerConfig.activeProvider === provider && fs.existsSync(settingsFile)) {
   fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
 }
 NODE
+else
+  echo "Neither python3 nor node is available. Cannot update JSON settings safely." >&2
+  exit 1
+fi
 
 chmod 600 "${PROVIDER_FILE}" "${SETTINGS_FILE}" 2>/dev/null || true
 echo "Saved API key for provider: ${PROVIDER}"

@@ -34,7 +34,42 @@ export SETTINGS_FILE
 export MODEL
 export BASE_URL
 
-node <<'NODE'
+if command -v python3 >/dev/null 2>&1; then
+  python3 <<'PY'
+import json
+import os
+import shutil
+import time
+
+settings_file = os.environ["SETTINGS_FILE"]
+model = os.environ["MODEL"]
+base_url = os.environ["BASE_URL"]
+
+settings = {}
+if os.path.exists(settings_file):
+    try:
+        with open(settings_file, encoding="utf-8") as handle:
+            settings = json.load(handle)
+    except Exception:
+        backup = f"{settings_file}.bak.{int(time.time() * 1000)}"
+        shutil.copy2(settings_file, backup)
+        print(f"Existing settings were invalid JSON. Backed up to {backup}")
+
+settings["env"] = {
+    **settings.get("env", {}),
+    "ANTHROPIC_BASE_URL": base_url,
+    "ANTHROPIC_MODEL": model,
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": model,
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": model,
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": model,
+}
+settings.setdefault("includeCoAuthoredBy", False)
+with open(settings_file, "w", encoding="utf-8") as handle:
+    json.dump(settings, handle, indent=2)
+    handle.write("\n")
+PY
+elif command -v node >/dev/null 2>&1; then
+  node <<'NODE'
 const fs = require("fs");
 
 const settingsFile = process.env.SETTINGS_FILE;
@@ -67,6 +102,10 @@ if (settings.includeCoAuthoredBy === undefined) {
 
 fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
 NODE
+else
+  echo "Neither python3 nor node is available. Cannot update JSON settings safely." >&2
+  exit 1
+fi
 
 chmod 600 "${SETTINGS_FILE}" || true
 echo "Claude Code MiMo model set to: ${MODEL}"

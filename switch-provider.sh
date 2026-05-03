@@ -83,7 +83,71 @@ export MODEL
 export BASE_URL
 export TOKEN
 
-node <<'NODE'
+if command -v python3 >/dev/null 2>&1; then
+  python3 <<'PY'
+import json
+import os
+import shutil
+import sys
+import time
+
+settings_file = os.environ["SETTINGS_FILE"]
+provider_file = os.environ["PROVIDER_FILE"]
+provider = os.environ["PROVIDER"]
+model = os.environ["MODEL"]
+base_url = os.environ["BASE_URL"]
+token_from_env = os.environ.get("TOKEN", "")
+
+def read_json(path):
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as handle:
+            return json.load(handle)
+    except Exception:
+        backup = f"{path}.bak.{int(time.time() * 1000)}"
+        shutil.copy2(path, backup)
+        print(f"Existing JSON was invalid. Backed up to {backup}")
+        return {}
+
+provider_config = read_json(provider_file)
+provider_config["providers"] = provider_config.get("providers", {})
+provider_config["providers"][provider] = {
+    **provider_config["providers"].get(provider, {}),
+    "baseUrl": base_url,
+}
+if token_from_env:
+    provider_config["providers"][provider]["authToken"] = token_from_env
+
+token = provider_config["providers"][provider].get("authToken")
+if not token:
+    env_name = "MIMO_API_KEY" if provider == "mimo" else "DEEPSEEK_API_KEY"
+    print(f"Missing API key for {provider}. Re-run with {env_name}=... once.", file=sys.stderr)
+    sys.exit(1)
+
+provider_config["activeProvider"] = provider
+provider_config["activeModel"] = model
+with open(provider_file, "w", encoding="utf-8") as handle:
+    json.dump(provider_config, handle, indent=2)
+    handle.write("\n")
+
+settings = read_json(settings_file)
+settings["env"] = {
+    **settings.get("env", {}),
+    "ANTHROPIC_BASE_URL": base_url,
+    "ANTHROPIC_AUTH_TOKEN": token,
+    "ANTHROPIC_MODEL": model,
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": model,
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": model,
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": model,
+}
+settings.setdefault("includeCoAuthoredBy", False)
+with open(settings_file, "w", encoding="utf-8") as handle:
+    json.dump(settings, handle, indent=2)
+    handle.write("\n")
+PY
+elif command -v node >/dev/null 2>&1; then
+  node <<'NODE'
 const fs = require("fs");
 
 const settingsFile = process.env.SETTINGS_FILE;
@@ -144,6 +208,10 @@ if (settings.includeCoAuthoredBy === undefined) {
 
 fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
 NODE
+else
+  echo "Neither python3 nor node is available. Cannot update JSON settings safely." >&2
+  exit 1
+fi
 
 chmod 600 "${SETTINGS_FILE}" "${PROVIDER_FILE}" || true
 echo "Claude Code provider set to: ${PROVIDER}"
