@@ -56,6 +56,52 @@ function Write-JsonFile {
   Set-Content -Path $Path -Encoding UTF8 -Value ($json + "`n")
 }
 
+function Test-MapKey {
+  param(
+    [object]$Map,
+    [string]$Key
+  )
+
+  if ($Map -is [System.Collections.IDictionary]) {
+    return $Map.Contains($Key)
+  }
+
+  return $null -ne $Map.PSObject.Properties[$Key]
+}
+
+function Get-MapValue {
+  param(
+    [object]$Map,
+    [string]$Key
+  )
+
+  if ($Map -is [System.Collections.IDictionary]) {
+    return $Map[$Key]
+  }
+
+  return $Map.PSObject.Properties[$Key].Value
+}
+
+function Set-MapValue {
+  param(
+    [object]$Map,
+    [string]$Key,
+    [object]$Value
+  )
+
+  if ($Map -is [System.Collections.IDictionary]) {
+    $Map[$Key] = $Value
+  }
+  else {
+    if ($Map.PSObject.Properties[$Key]) {
+      $Map.PSObject.Properties[$Key].Value = $Value
+    }
+    else {
+      $Map | Add-Member -NotePropertyName $Key -NotePropertyValue $Value
+    }
+  }
+}
+
 function Ensure-PathEntry {
   param([string]$PathToAdd)
 
@@ -183,42 +229,44 @@ if (-not $SkipMimoConfig) {
   $providerFile = Join-Path $settingsDir "provider-switch.json"
 
   $settings = Read-JsonFile $settingsFile
-  if (-not $settings.ContainsKey("env") -or -not $settings.env) {
-    $settings.env = [ordered]@{}
+  if (-not (Test-MapKey $settings "env") -or -not (Get-MapValue $settings "env")) {
+    Set-MapValue $settings "env" ([ordered]@{})
   }
 
-  $settings.env.ANTHROPIC_BASE_URL = $BaseUrl
-  $settings.env.ANTHROPIC_AUTH_TOKEN = $env:MIMO_API_KEY
-  $settings.env.ANTHROPIC_MODEL = $Model
-  $settings.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = $Model
-  $settings.env.ANTHROPIC_DEFAULT_SONNET_MODEL = $Model
-  $settings.env.ANTHROPIC_DEFAULT_OPUS_MODEL = $Model
+  $settingsEnv = Get-MapValue $settings "env"
+  Set-MapValue $settingsEnv "ANTHROPIC_BASE_URL" $BaseUrl
+  Set-MapValue $settingsEnv "ANTHROPIC_AUTH_TOKEN" $env:MIMO_API_KEY
+  Set-MapValue $settingsEnv "ANTHROPIC_MODEL" $Model
+  Set-MapValue $settingsEnv "ANTHROPIC_DEFAULT_HAIKU_MODEL" $Model
+  Set-MapValue $settingsEnv "ANTHROPIC_DEFAULT_SONNET_MODEL" $Model
+  Set-MapValue $settingsEnv "ANTHROPIC_DEFAULT_OPUS_MODEL" $Model
 
-  if (-not $settings.ContainsKey("includeCoAuthoredBy")) {
-    $settings.includeCoAuthoredBy = $false
+  if (-not (Test-MapKey $settings "includeCoAuthoredBy")) {
+    Set-MapValue $settings "includeCoAuthoredBy" $false
   }
 
   Write-JsonFile $settingsFile $settings
 
   $providerConfig = Read-JsonFile $providerFile
-  if (-not $providerConfig.ContainsKey("providers") -or -not $providerConfig.providers) {
-    $providerConfig.providers = [ordered]@{}
+  if (-not (Test-MapKey $providerConfig "providers") -or -not (Get-MapValue $providerConfig "providers")) {
+    Set-MapValue $providerConfig "providers" ([ordered]@{})
   }
 
-  $providerConfig.providers.mimo = [ordered]@{
+  $providers = Get-MapValue $providerConfig "providers"
+  Set-MapValue $providers "mimo" ([ordered]@{
     baseUrl = $BaseUrl
     authToken = $env:MIMO_API_KEY
-  }
+  })
 
   if ($env:DEEPSEEK_API_KEY) {
-    $providerConfig.providers.deepseek = [ordered]@{
+    Set-MapValue $providers "deepseek" ([ordered]@{
       baseUrl = $DeepSeekBaseUrl
       authToken = $env:DEEPSEEK_API_KEY
-    }
+    })
   }
 
-  $providerConfig.activeProvider = "mimo"
-  $providerConfig.activeModel = $Model
+  Set-MapValue $providerConfig "activeProvider" "mimo"
+  Set-MapValue $providerConfig "activeModel" $Model
   Write-JsonFile $providerFile $providerConfig
 
   Write-Host "Done. Claude Code is configured for MiMo model: $Model"
