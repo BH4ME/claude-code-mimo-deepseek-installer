@@ -98,7 +98,7 @@ function Install-ProviderSwitcher {
     Copy-Item ".\switch-provider.ps1" $scriptPath -Force
   }
   else {
-    Invoke-WebRequest -Uri "https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/switch-provider.ps1" -OutFile $scriptPath
+    Invoke-WebRequest -Uri "https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/switch-provider.ps1" -OutFile $scriptPath
   }
 
   if (Test-Path ".\claude-provider.cmd") {
@@ -122,7 +122,7 @@ function Install-ProviderKeySetter {
     Copy-Item ".\set-provider-key.ps1" $scriptPath -Force
   }
   else {
-    Invoke-WebRequest -Uri "https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/set-provider-key.ps1" -OutFile $scriptPath
+    Invoke-WebRequest -Uri "https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/set-provider-key.ps1" -OutFile $scriptPath
   }
 
   if (Test-Path ".\claude-provider-key.cmd") {
@@ -146,7 +146,7 @@ function Install-MimoSwitcher {
     Copy-Item ".\switch-mimo.ps1" $scriptPath -Force
   }
   else {
-    Invoke-WebRequest -Uri "https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/switch-mimo.ps1" -OutFile $scriptPath
+    Invoke-WebRequest -Uri "https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/switch-mimo.ps1" -OutFile $scriptPath
   }
 
   if (Test-Path ".\claude-mimo.cmd") {
@@ -235,4 +235,6 @@ Write-Host ""
 Write-Host "Restart CMD/PowerShell if new commands are not recognized."
 Write-Host "Run: claude"
 Write-Host "Switch provider/model with: claude-provider mimo flash"
+Write-Host "Switch provider/model with: claude-provider mimo pro"
+Write-Host "Switch provider/model with: claude-provider mimo omni"
 Write-Host "Switch provider/model with: claude-provider deepseek pro"

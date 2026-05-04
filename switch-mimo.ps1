@@ -21,8 +21,10 @@ $BaseUrl = if ($env:MIMO_ANTHROPIC_BASE_URL) { $env:MIMO_ANTHROPIC_BASE_URL } el
 
 switch ($ModelArg) {
   { $_ -in @("flash", "v2-flash", "mimo-v2-flash") } { $Model = "mimo-v2-flash"; break }
+  { $_ -in @("pro", "v2-pro", "mimo-v2-pro") } { $Model = "mimo-v2-pro"; break }
+  { $_ -in @("omni", "v2-omni", "mimo-v2-omni") } { $Model = "mimo-v2-omni"; break }
   { $_ -in @("--help", "-h", "") } {
-    Write-Host "Usage: .\switch-mimo.ps1 <flash|model-name>"
+    Write-Host "Usage: .\switch-mimo.ps1 <flash|pro|omni|model-name>"
     Write-Host ""
     Write-Host "Switch Claude Code to a Xiaomi MiMo model."
     exit 0

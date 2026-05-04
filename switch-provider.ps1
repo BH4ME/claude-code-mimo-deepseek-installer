@@ -7,7 +7,7 @@ $ProviderFile = Join-Path $HOME ".claude\provider-switch.json"
 
 function Show-Usage {
   Write-Host "Usage:"
-  Write-Host "  claude-provider mimo <flash|model-name>"
+  Write-Host "  claude-provider mimo <flash|pro|omni|model-name>"
   Write-Host "  claude-provider deepseek <flash|pro|model-name>"
   Write-Host ""
   Write-Host "Environment:"
@@ -24,6 +24,8 @@ switch ($ProviderArg) {
     $Token = if ($env:MIMO_API_KEY) { $env:MIMO_API_KEY } else { "" }
     switch ($ModelArg) {
       { $_ -in @("flash", "v2-flash", "mimo-v2-flash", "") } { $Model = "mimo-v2-flash"; break }
+      { $_ -in @("pro", "v2-pro", "mimo-v2-pro") } { $Model = "mimo-v2-pro"; break }
+      { $_ -in @("omni", "v2-omni", "mimo-v2-omni") } { $Model = "mimo-v2-omni"; break }
       { $_ -in @("--help", "-h") } { Show-Usage; exit 0 }
       default { $Model = $ModelArg }
     }

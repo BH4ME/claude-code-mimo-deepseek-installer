@@ -31,7 +31,7 @@ install_provider_switcher() {
 
   install_dir="${HOME}/.local/bin"
   target="${install_dir}/claude-provider"
-  source_url="${PROVIDER_SWITCHER_URL:-https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/switch-provider.sh}"
+  source_url="${PROVIDER_SWITCHER_URL:-https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/switch-provider.sh}"
 
   mkdir -p "${install_dir}"
 
@@ -52,7 +52,7 @@ install_provider_key_setter() {
 
   install_dir="${HOME}/.local/bin"
   target="${install_dir}/claude-provider-key"
-  source_url="${PROVIDER_KEY_SETTER_URL:-https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/set-provider-key.sh}"
+  source_url="${PROVIDER_KEY_SETTER_URL:-https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/set-provider-key.sh}"
 
   mkdir -p "${install_dir}"
 
@@ -73,7 +73,7 @@ install_mimo_switcher() {
 
   install_dir="${HOME}/.local/bin"
   target="${install_dir}/claude-mimo"
-  source_url="${MIMO_SWITCHER_URL:-https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/switch-mimo.sh}"
+  source_url="${MIMO_SWITCHER_URL:-https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/switch-mimo.sh}"
 
   mkdir -p "${install_dir}"
 

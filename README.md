@@ -13,13 +13,13 @@ macOS / Linux 会优先使用 Claude Code 官方 native installer，不需要提
 Release 一键安装：
 
 ```bash
-curl -fsSL https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/install.sh | bash
 ```
 
 非交互式 Release 安装：
 
 ```bash
-curl -fsSL https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/install.sh | MIMO_API_KEY="<your-mimo-api-key>" DEEPSEEK_API_KEY="<your-deepseek-api-key>" bash
+curl -fsSL https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/install.sh | MIMO_API_KEY="<your-mimo-api-key>" DEEPSEEK_API_KEY="<your-deepseek-api-key>" bash
 ```
 
 交互式安装：
@@ -63,7 +63,7 @@ Windows 会使用 Claude Code 官方 native installer，不需要提前安装 No
 PowerShell Release 一键安装：
 
 ```powershell
-irm https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/install.ps1 | iex
+irm https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/install.ps1 | iex
 ```
 
 PowerShell 非交互式 Release 安装：
@@ -71,7 +71,7 @@ PowerShell 非交互式 Release 安装：
 ```powershell
 $env:MIMO_API_KEY="<your-mimo-api-key>"
 $env:DEEPSEEK_API_KEY="<your-deepseek-api-key>"
-irm https://github.com/BH4ME/claude-code-mimo-installer/releases/latest/download/install.ps1 | iex
+irm https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest/download/install.ps1 | iex
 ```
 
 PowerShell 交互式安装：
@@ -142,16 +142,33 @@ claude
 
 ## 切换模型
 
+MiMo 当前脚本内置快捷别名：
+
+- `flash` -> `mimo-v2-flash`
+- `pro` -> `mimo-v2-pro`
+- `omni` -> `mimo-v2-omni`
+
+DeepSeek 当前脚本内置快捷别名：
+
+- `flash` -> `deepseek-v4-flash`
+- `pro` -> `deepseek-v4-pro`
+
+不在快捷别名里的模型，也可以直接传完整模型名。
+
 macOS / Linux：
 
 ```bash
 claude-mimo flash
+claude-mimo pro
+claude-mimo omni
 ```
 
 也可以用统一切换器切 provider 和模型：
 
 ```bash
 claude-provider mimo flash
+claude-provider mimo pro
+claude-provider mimo omni
 claude-provider deepseek pro
 claude-provider deepseek flash
 ```
@@ -166,6 +183,8 @@ DEEPSEEK_API_KEY="<your-deepseek-api-key>" claude-provider deepseek pro
 
 ```bash
 claude-provider mimo mimo-v2-flash
+claude-provider mimo mimo-v2-pro
+claude-provider mimo mimo-v2-omni
 claude-provider deepseek deepseek-v4-pro
 ```
 
@@ -179,6 +198,8 @@ Windows：
 
 ```powershell
 claude-provider mimo flash
+claude-provider mimo pro
+claude-provider mimo omni
 claude-provider deepseek pro
 ```
 

@@ -17,8 +17,14 @@ case "${MODEL_ARG}" in
   flash|v2-flash|mimo-v2-flash)
     MODEL="mimo-v2-flash"
     ;;
+  pro|v2-pro|mimo-v2-pro)
+    MODEL="mimo-v2-pro"
+    ;;
+  omni|v2-omni|mimo-v2-omni)
+    MODEL="mimo-v2-omni"
+    ;;
   --help|-h|"")
-    echo "Usage: claude-mimo <flash|model-name>"
+    echo "Usage: claude-mimo <flash|pro|omni|model-name>"
     echo ""
     echo "Switch Claude Code to a Xiaomi MiMo model."
     exit 0

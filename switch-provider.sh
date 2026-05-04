@@ -9,7 +9,7 @@ PROVIDER_FILE="${HOME}/.claude/provider-switch.json"
 usage() {
   cat <<'USAGE'
 Usage:
-  claude-provider mimo <flash|model-name>
+  claude-provider mimo <flash|pro|omni|model-name>
   claude-provider deepseek <flash|pro|model-name>
 
 Environment:
@@ -20,6 +20,8 @@ Environment:
 
 Examples:
   claude-provider mimo flash
+  claude-provider mimo pro
+  claude-provider mimo omni
   DEEPSEEK_API_KEY="sk-..." claude-provider deepseek pro
   claude-provider deepseek deepseek-v4-flash
 USAGE
@@ -33,6 +35,12 @@ case "${PROVIDER_ARG}" in
     case "${MODEL_ARG}" in
       flash|v2-flash|mimo-v2-flash|"")
         MODEL="mimo-v2-flash"
+        ;;
+      pro|v2-pro|mimo-v2-pro)
+        MODEL="mimo-v2-pro"
+        ;;
+      omni|v2-omni|mimo-v2-omni)
+        MODEL="mimo-v2-omni"
         ;;
       --help|-h)
         usage
