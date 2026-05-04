@@ -181,19 +181,38 @@ function Install-ClaudeCommandShim {
 }
 
 function Install-ClaudeCodeNative {
-  if (Get-Command npm -ErrorAction SilentlyContinue) {
-    Write-Host "Removing old npm Claude Code package if present..."
-    try {
-      npm uninstall -g "@anthropic-ai/claude-code" | Out-Host
-    }
-    catch {
-      Write-Warning "npm uninstall failed or package was not present. Continuing with native installer."
+  Write-Host "Installing or updating Claude Code with the official Windows installer..."
+  try {
+    Invoke-Expression (Invoke-RestMethod "https://claude.ai/install.ps1")
+    Ensure-ClaudePath
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+      return
     }
   }
+  catch {
+    Write-Warning "Official Claude Code installer failed: $($_.Exception.Message)"
+  }
 
-  Write-Host "Installing or updating Claude Code with the official Windows installer..."
-  Invoke-Expression (Invoke-RestMethod "https://claude.ai/install.ps1")
-  Ensure-ClaudePath
+  Write-Host "Falling back to npm install for Claude Code..."
+  if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+    throw "Could not install Claude Code automatically. The official installer failed, and npm is not installed."
+  }
+
+  npm install -g "@anthropic-ai/claude-code" | Out-Host
+
+  try {
+    $npmPrefix = (npm prefix -g).Trim()
+    if ($npmPrefix) {
+      Ensure-PathEntry $npmPrefix
+    }
+  }
+  catch {
+    Write-Warning "Could not detect npm global prefix. If claude is not recognized, add your npm global bin directory to PATH."
+  }
+
+  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    throw "Claude Code npm install finished, but claude is still not recognized in this terminal."
+  }
 }
 
 function Install-ProviderSwitcher {
