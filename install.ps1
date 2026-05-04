@@ -119,6 +119,29 @@ function Ensure-PathEntry {
   }
 }
 
+function Ensure-ClaudePath {
+  $candidateDirs = @()
+  if ($HOME) {
+    $candidateDirs += (Join-Path $HOME ".local\bin")
+  }
+  if ($env:LOCALAPPDATA) {
+    $candidateDirs += (Join-Path $env:LOCALAPPDATA "bin")
+  }
+
+  foreach ($dir in $candidateDirs) {
+    $claudeExe = Join-Path $dir "claude.exe"
+    if (Test-Path $claudeExe) {
+      Ensure-PathEntry $dir
+      Write-Host "Claude Code command found at: $claudeExe"
+      return
+    }
+  }
+
+  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    Write-Warning "Claude Code was installed, but claude.exe was not found in common PATH locations. Restart PowerShell/CMD first; if it is still missing, add the Location printed by the official installer to your user PATH."
+  }
+}
+
 function Install-ClaudeCodeNative {
   if (Get-Command npm -ErrorAction SilentlyContinue) {
     Write-Host "Removing old npm Claude Code package if present..."
@@ -132,6 +155,7 @@ function Install-ClaudeCodeNative {
 
   Write-Host "Installing or updating Claude Code with the official Windows installer..."
   Invoke-Expression (Invoke-RestMethod "https://claude.ai/install.ps1")
+  Ensure-ClaudePath
 }
 
 function Install-ProviderSwitcher {
