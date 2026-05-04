@@ -123,13 +123,14 @@ claude --version
 claude
 ```
 
-如果提示“无法将 claude 识别为 cmdlet、函数、脚本文件或可运行程序的名称”，说明 Claude Code 已安装但当前终端的 PATH 还没识别到。最新安装脚本会自动把常见安装目录加入用户 PATH；重新打开 PowerShell/CMD 后再试。如果仍然不行，先用完整路径验证：
+如果提示“无法将 claude 识别为 cmdlet、函数、脚本文件或可运行程序的名称”，说明 Claude Code 已安装但当前终端的 PATH 还没识别到。最新安装脚本会自动把常见安装目录加入用户 PATH，并额外安装一个 `~\.claude-provider\claude.cmd` 入口；重新打开 PowerShell/CMD 后再试。如果仍然不行，先用完整路径验证：
 
 ```powershell
 & "$HOME\.local\bin\claude.exe" --version
+& "$HOME\.claude-provider\claude.cmd" --version
 ```
 
-如果上面能运行，把 `$HOME\.local\bin` 加到用户 PATH 后重开终端。
+如果 `claude.cmd` 能运行，把 `$HOME\.claude-provider` 加到用户 PATH 后重开终端；如果 `claude.exe` 能运行，把 `$HOME\.local\bin` 加到用户 PATH 后重开终端。
 
 ## 配置内容
 

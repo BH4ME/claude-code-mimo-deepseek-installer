@@ -142,6 +142,44 @@ function Ensure-ClaudePath {
   }
 }
 
+function Find-ClaudeExePath {
+  $candidateFiles = @()
+  if ($HOME) {
+    $candidateFiles += (Join-Path $HOME ".local\bin\claude.exe")
+  }
+  if ($env:LOCALAPPDATA) {
+    $candidateFiles += (Join-Path $env:LOCALAPPDATA "bin\claude.exe")
+  }
+
+  foreach ($file in $candidateFiles) {
+    if (Test-Path $file) {
+      return $file
+    }
+  }
+
+  $command = Get-Command claude.exe -ErrorAction SilentlyContinue
+  if ($command) {
+    return $command.Source
+  }
+
+  return $null
+}
+
+function Install-ClaudeCommandShim {
+  $claudeExe = Find-ClaudeExePath
+  if (-not $claudeExe) {
+    Write-Warning "Could not create claude.cmd because claude.exe was not found."
+    return
+  }
+
+  $installDir = Join-Path $HOME ".claude-provider"
+  $cmdPath = Join-Path $installDir "claude.cmd"
+  New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+  Set-Content -Path $cmdPath -Encoding ASCII -Value "@echo off`r`n`"$claudeExe`" %*"
+  Ensure-PathEntry $installDir
+  Write-Host "Claude command shim installed to: $cmdPath"
+}
+
 function Install-ClaudeCodeNative {
   if (Get-Command npm -ErrorAction SilentlyContinue) {
     Write-Host "Removing old npm Claude Code package if present..."
@@ -305,6 +343,7 @@ else {
 Install-MimoSwitcher
 Install-ProviderSwitcher
 Install-ProviderKeySetter
+Install-ClaudeCommandShim
 
 Write-Host ""
 Write-Host "Restart CMD/PowerShell if new commands are not recognized."
