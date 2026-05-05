@@ -165,6 +165,122 @@ function Find-ClaudeExePath {
   return $null
 }
 
+function Test-ClaudeCommand {
+  try {
+    $output = & claude --version 2>&1
+    if ($LASTEXITCODE -eq 0) {
+      Write-Host "Claude Code is runnable: $output"
+      return $true
+    }
+  }
+  catch {
+    Write-Warning "Claude command exists but did not run: $($_.Exception.Message)"
+  }
+
+  return $false
+}
+
+function Get-NpmClaudePackagePath {
+  if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+    return $null
+  }
+
+  try {
+    $npmPrefix = (npm prefix -g).Trim()
+    if (-not $npmPrefix) {
+      return $null
+    }
+
+    return (Join-Path $npmPrefix "node_modules\@anthropic-ai\claude-code")
+  }
+  catch {
+    return $null
+  }
+}
+
+function Repair-ClaudeCodeNpmBinary {
+  if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+    return $false
+  }
+
+  if (-not (Get-Command tar -ErrorAction SilentlyContinue)) {
+    Write-Warning "Could not repair Claude Code npm binary because tar is not available."
+    return $false
+  }
+
+  $packagePath = Get-NpmClaudePackagePath
+  if (-not $packagePath -or -not (Test-Path $packagePath)) {
+    return $false
+  }
+
+  $packageJsonPath = Join-Path $packagePath "package.json"
+  if (-not (Test-Path $packageJsonPath)) {
+    return $false
+  }
+
+  $packageJson = Get-Content -Raw -Path $packageJsonPath | ConvertFrom-Json
+  $version = $packageJson.version
+  if (-not $version) {
+    return $false
+  }
+
+  $platformPackage = $null
+  switch ("$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)") {
+    "X64" { $platformPackage = "@anthropic-ai/claude-code-win32-x64" }
+    "Arm64" { $platformPackage = "@anthropic-ai/claude-code-win32-arm64" }
+    default {
+      Write-Warning "Unsupported Windows architecture for Claude Code npm repair: $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
+      return $false
+    }
+  }
+
+  $platformPath = Join-Path (Split-Path -Parent $packagePath) ($platformPackage -replace "^@anthropic-ai/", "")
+  $platformExe = Join-Path $platformPath "claude.exe"
+  $destExe = Join-Path $packagePath "bin\claude.exe"
+
+  if ((Test-Path $platformExe) -and ((Get-Item $platformExe).Length -gt 100MB)) {
+    Write-Host "Repairing Claude Code npm binary from installed platform package..."
+    Copy-Item -Path $platformExe -Destination $destExe -Force
+    return $true
+  }
+
+  Write-Host "Downloading Claude Code native Windows binary for npm repair..."
+  $packageFileName = ($platformPackage -replace "^@anthropic-ai/", "")
+  $tarballUrl = "https://registry.npmjs.org/$platformPackage/-/$packageFileName-$version.tgz"
+  $tempRoot = Join-Path ([IO.Path]::GetTempPath()) "claude-code-native-$([Guid]::NewGuid().ToString('N'))"
+  $tgzPath = Join-Path $tempRoot "$packageFileName-$version.tgz"
+  $extractPath = Join-Path $tempRoot "extract"
+
+  New-Item -ItemType Directory -Force -Path $extractPath | Out-Null
+  try {
+    $ProgressPreference = "SilentlyContinue"
+    Invoke-WebRequest -Uri $tarballUrl -OutFile $tgzPath -TimeoutSec 1800
+    tar -xzf $tgzPath -C $extractPath
+
+    $downloadedExe = Join-Path $extractPath "package\claude.exe"
+    if (-not (Test-Path $downloadedExe)) {
+      throw "Downloaded package did not contain claude.exe."
+    }
+
+    if ((Get-Item $downloadedExe).Length -lt 100MB) {
+      throw "Downloaded claude.exe is too small and may be incomplete."
+    }
+
+    Copy-Item -Path $downloadedExe -Destination $destExe -Force
+    Write-Host "Repaired Claude Code npm binary: $destExe"
+    return $true
+  }
+  catch {
+    Write-Warning "Claude Code npm binary repair failed: $($_.Exception.Message)"
+    return $false
+  }
+  finally {
+    if (Test-Path $tempRoot) {
+      Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 function Install-ClaudeCommandShim {
   $claudeExe = Find-ClaudeExePath
   if (-not $claudeExe) {
@@ -185,7 +301,7 @@ function Install-ClaudeCodeNative {
   try {
     Invoke-Expression (Invoke-RestMethod "https://claude.ai/install.ps1")
     Ensure-ClaudePath
-    if (Get-Command claude -ErrorAction SilentlyContinue) {
+    if ((Get-Command claude -ErrorAction SilentlyContinue) -and (Test-ClaudeCommand)) {
       return
     }
   }
@@ -198,7 +314,7 @@ function Install-ClaudeCodeNative {
     throw "Could not install Claude Code automatically. The official installer failed, and npm is not installed."
   }
 
-  npm install -g "@anthropic-ai/claude-code" | Out-Host
+  npm install -g "@anthropic-ai/claude-code" --include=optional | Out-Host
 
   try {
     $npmPrefix = (npm prefix -g).Trim()
@@ -212,6 +328,14 @@ function Install-ClaudeCodeNative {
 
   if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
     throw "Claude Code npm install finished, but claude is still not recognized in this terminal."
+  }
+
+  if (-not (Test-ClaudeCommand)) {
+    if ((Repair-ClaudeCodeNpmBinary) -and (Test-ClaudeCommand)) {
+      return
+    }
+
+    throw "Claude Code is installed, but claude --version failed. Re-run this installer or check your network while downloading the Windows native binary."
   }
 }
 
