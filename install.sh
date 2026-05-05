@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODEL="${MIMO_MODEL:-mimo-v2-flash}"
-BASE_URL="${MIMO_ANTHROPIC_BASE_URL:-https://api.xiaomimimo.com/anthropic}"
+MODEL="${MIMO_MODEL:-mimo-v2.5-pro}"
 DEEPSEEK_BASE_URL="${DEEPSEEK_ANTHROPIC_BASE_URL:-https://api.deepseek.com/anthropic}"
 SKIP_MIMO_CONFIG="${SKIP_MIMO_CONFIG:-0}"
 
@@ -16,8 +15,8 @@ for arg in "$@"; do
       echo ""
       echo "Environment:"
       echo "  MIMO_API_KEY                 Xiaomi MiMo API key"
-      echo "  MIMO_MODEL                   Model name, default: mimo-v2-flash"
-      echo "  MIMO_ANTHROPIC_BASE_URL      API base URL"
+      echo "  MIMO_MODEL                   Model name, default: mimo-v2.5-pro"
+      echo "  MIMO_ANTHROPIC_BASE_URL      API base URL; auto-detected for sk-/tp- keys if unset"
       echo "  DEEPSEEK_API_KEY             Optional DeepSeek API key for provider switching"
       echo "  DEEPSEEK_ANTHROPIC_BASE_URL  DeepSeek API base URL"
       echo "  SKIP_MIMO_CONFIG=1           Install tools only; configure API later"
@@ -25,6 +24,17 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+get_mimo_base_url() {
+  local token="${1:-}"
+  if [ -n "${MIMO_ANTHROPIC_BASE_URL:-}" ]; then
+    printf '%s\n' "${MIMO_ANTHROPIC_BASE_URL}"
+  elif [[ "${token}" == tp-* ]]; then
+    printf '%s\n' "https://token-plan-cn.xiaomimimo.com/anthropic"
+  else
+    printf '%s\n' "https://api.xiaomimimo.com/anthropic"
+  fi
+}
 
 install_provider_switcher() {
   local install_dir target source_url
@@ -101,6 +111,7 @@ import shutil
 import time
 
 settings_file = os.environ["SETTINGS_FILE"]
+claude_json_file = os.environ["CLAUDE_JSON_FILE"]
 provider_file = os.environ["PROVIDER_FILE"]
 token = os.environ["MIMO_API_KEY"]
 deepseek_token = os.environ.get("DEEPSEEK_API_KEY", "")
@@ -155,6 +166,12 @@ provider_config["activeModel"] = model
 with open(provider_file, "w", encoding="utf-8") as handle:
     json.dump(provider_config, handle, indent=2)
     handle.write("\n")
+
+claude_json = read_json(claude_json_file, "Claude Code global config")
+claude_json["hasCompletedOnboarding"] = True
+with open(claude_json_file, "w", encoding="utf-8") as handle:
+    json.dump(claude_json, handle, indent=2)
+    handle.write("\n")
 PY
     return
   fi
@@ -164,6 +181,7 @@ PY
 const fs = require("fs");
 
 const settingsFile = process.env.SETTINGS_FILE;
+const claudeJsonFile = process.env.CLAUDE_JSON_FILE;
 const providerFile = process.env.PROVIDER_FILE;
 const token = process.env.MIMO_API_KEY;
 const deepseekToken = process.env.DEEPSEEK_API_KEY || "";
@@ -215,6 +233,10 @@ if (deepseekToken) {
 providerConfig.activeProvider = "mimo";
 providerConfig.activeModel = model;
 fs.writeFileSync(providerFile, `${JSON.stringify(providerConfig, null, 2)}\n`, { mode: 0o600 });
+
+const claudeJson = readJson(claudeJsonFile, "Claude Code global config");
+claudeJson.hasCompletedOnboarding = true;
+fs.writeFileSync(claudeJsonFile, `${JSON.stringify(claudeJson, null, 2)}\n`, { mode: 0o600 });
 NODE
     return
   fi
@@ -433,16 +455,20 @@ if [ "${SKIP_MIMO_CONFIG}" != "1" ] && [ -z "${MIMO_API_KEY:-}" ]; then
   exit 1
 fi
 
+BASE_URL="$(get_mimo_base_url "${MIMO_API_KEY:-}")"
+
 echo "Installing or updating Claude Code..."
 install_claude_code
 
 if [ "${SKIP_MIMO_CONFIG}" != "1" ]; then
   SETTINGS_DIR="${HOME}/.claude"
   SETTINGS_FILE="${SETTINGS_DIR}/settings.json"
+  CLAUDE_JSON_FILE="${HOME}/.claude.json"
   PROVIDER_FILE="${SETTINGS_DIR}/provider-switch.json"
   mkdir -p "${SETTINGS_DIR}"
 
   export SETTINGS_FILE
+  export CLAUDE_JSON_FILE
   export PROVIDER_FILE
   export MIMO_API_KEY
   export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-}"
@@ -452,7 +478,7 @@ if [ "${SKIP_MIMO_CONFIG}" != "1" ]; then
 
   write_initial_config
 
-  chmod 600 "${SETTINGS_FILE}" "${PROVIDER_FILE}" || true
+  chmod 600 "${SETTINGS_FILE}" "${CLAUDE_JSON_FILE}" "${PROVIDER_FILE}" || true
 
   echo "Done. Claude Code is configured for MiMo model: ${MODEL}"
 else

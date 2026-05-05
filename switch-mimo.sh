@@ -10,18 +10,29 @@ if command -v claude-provider >/dev/null 2>&1; then
 fi
 
 MODEL_ARG="${1:-}"
-BASE_URL="${MIMO_ANTHROPIC_BASE_URL:-https://api.xiaomimimo.com/anthropic}"
 SETTINGS_FILE="${HOME}/.claude/settings.json"
+
+get_mimo_base_url() {
+  if [ -n "${MIMO_ANTHROPIC_BASE_URL:-}" ]; then
+    printf '%s\n' "${MIMO_ANTHROPIC_BASE_URL}"
+  elif [[ "${MIMO_API_KEY:-}" == tp-* ]]; then
+    printf '%s\n' "https://token-plan-cn.xiaomimimo.com/anthropic"
+  else
+    printf '%s\n' "https://api.xiaomimimo.com/anthropic"
+  fi
+}
+
+BASE_URL="$(get_mimo_base_url)"
 
 case "${MODEL_ARG}" in
   flash|v2-flash|mimo-v2-flash)
     MODEL="mimo-v2-flash"
     ;;
-  pro|v2-pro|mimo-v2-pro)
-    MODEL="mimo-v2-pro"
+  pro|v2.5-pro|mimo-v2.5-pro|v2-pro|mimo-v2-pro)
+    MODEL="mimo-v2.5-pro"
     ;;
-  omni|v2-omni|mimo-v2-omni)
-    MODEL="mimo-v2-omni"
+  omni|v2.5|mimo-v2.5|v2-omni|mimo-v2-omni)
+    MODEL="mimo-v2.5"
     ;;
   --help|-h|"")
     echo "Usage: claude-mimo <flash|pro|omni|model-name>"

@@ -13,19 +13,29 @@ function Show-Usage {
   Write-Host "Environment:"
   Write-Host "  MIMO_API_KEY                 Xiaomi MiMo API key"
   Write-Host "  DEEPSEEK_API_KEY             DeepSeek API key"
-  Write-Host "  MIMO_ANTHROPIC_BASE_URL      Default: https://api.xiaomimimo.com/anthropic"
+  Write-Host "  MIMO_ANTHROPIC_BASE_URL      Override MiMo Anthropic base URL"
   Write-Host "  DEEPSEEK_ANTHROPIC_BASE_URL  Default: https://api.deepseek.com/anthropic"
+}
+
+function Get-MimoBaseUrl {
+  param([string]$Token)
+
+  if ($Token -like "tp-*") {
+    return "https://token-plan-cn.xiaomimimo.com/anthropic"
+  }
+
+  return "https://api.xiaomimimo.com/anthropic"
 }
 
 switch ($ProviderArg) {
   { $_ -in @("mimo", "xiaomi-mimo") } {
     $Provider = "mimo"
-    $BaseUrl = if ($env:MIMO_ANTHROPIC_BASE_URL) { $env:MIMO_ANTHROPIC_BASE_URL } else { "https://api.xiaomimimo.com/anthropic" }
     $Token = if ($env:MIMO_API_KEY) { $env:MIMO_API_KEY } else { "" }
+    $BaseUrl = if ($env:MIMO_ANTHROPIC_BASE_URL) { $env:MIMO_ANTHROPIC_BASE_URL } else { "" }
     switch ($ModelArg) {
       { $_ -in @("flash", "v2-flash", "mimo-v2-flash", "") } { $Model = "mimo-v2-flash"; break }
-      { $_ -in @("pro", "v2-pro", "mimo-v2-pro") } { $Model = "mimo-v2-pro"; break }
-      { $_ -in @("omni", "v2-omni", "mimo-v2-omni") } { $Model = "mimo-v2-omni"; break }
+      { $_ -in @("pro", "v2.5-pro", "mimo-v2.5-pro", "v2-pro", "mimo-v2-pro") } { $Model = "mimo-v2.5-pro"; break }
+      { $_ -in @("omni", "v2.5", "mimo-v2.5", "v2-omni", "mimo-v2-omni") } { $Model = "mimo-v2.5"; break }
       { $_ -in @("--help", "-h") } { Show-Usage; exit 0 }
       default { $Model = $ModelArg }
     }
@@ -69,7 +79,7 @@ const settingsFile = process.env.CLAUDE_SETTINGS_FILE;
 const providerFile = process.env.CLAUDE_PROVIDER_FILE;
 const provider = process.env.CLAUDE_PROVIDER_EFFECTIVE;
 const model = process.env.CLAUDE_MODEL_EFFECTIVE;
-const baseUrl = process.env.CLAUDE_BASE_URL_EFFECTIVE;
+const baseUrlFromEnv = process.env.CLAUDE_BASE_URL_EFFECTIVE || "";
 const tokenFromEnv = process.env.CLAUDE_TOKEN_EFFECTIVE || "";
 
 function readJson(file) {
@@ -86,8 +96,18 @@ function readJson(file) {
 
 const providerConfig = readJson(providerFile);
 providerConfig.providers = providerConfig.providers || {};
+const existingProvider = providerConfig.providers[provider] || {};
+const token = tokenFromEnv || existingProvider.authToken;
+const baseUrl =
+  baseUrlFromEnv ||
+  (provider === "mimo" && String(token || "").startsWith("tp-")
+    ? "https://token-plan-cn.xiaomimimo.com/anthropic"
+    : provider === "mimo"
+      ? "https://api.xiaomimimo.com/anthropic"
+      : "https://api.deepseek.com/anthropic");
+
 providerConfig.providers[provider] = {
-  ...(providerConfig.providers[provider] || {}),
+  ...existingProvider,
   baseUrl,
 };
 
@@ -95,7 +115,6 @@ if (tokenFromEnv) {
   providerConfig.providers[provider].authToken = tokenFromEnv;
 }
 
-const token = providerConfig.providers[provider].authToken;
 if (!token) {
   const envName = provider === "mimo" ? "MIMO_API_KEY" : "DEEPSEEK_API_KEY";
   console.error(`Missing API key for ${provider}. Re-run with ${envName}=... once.`);

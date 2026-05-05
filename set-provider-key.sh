@@ -23,6 +23,17 @@ Examples:
 USAGE
 }
 
+get_mimo_base_url() {
+  local token="${1:-}"
+  if [ -n "${MIMO_ANTHROPIC_BASE_URL:-}" ]; then
+    printf '%s\n' "${MIMO_ANTHROPIC_BASE_URL}"
+  elif [[ "${token}" == tp-* ]]; then
+    printf '%s\n' "https://token-plan-cn.xiaomimimo.com/anthropic"
+  else
+    printf '%s\n' "https://api.xiaomimimo.com/anthropic"
+  fi
+}
+
 case "${PROVIDER_ARG}" in
   mimo|xiaomi-mimo)
     PROVIDER="mimo"
@@ -64,6 +75,12 @@ mkdir -p "$(dirname "${PROVIDER_FILE}")"
 
 export PROVIDER
 export TOKEN
+if [ "${PROVIDER}" = "mimo" ]; then
+  BASE_URL="$(get_mimo_base_url "${TOKEN}")"
+else
+  BASE_URL=""
+fi
+export BASE_URL
 export PROVIDER_FILE
 export SETTINGS_FILE
 
@@ -76,6 +93,7 @@ import time
 
 provider = os.environ["PROVIDER"]
 token = os.environ["TOKEN"]
+base_url = os.environ.get("BASE_URL", "")
 provider_file = os.environ["PROVIDER_FILE"]
 settings_file = os.environ["SETTINGS_FILE"]
 
@@ -97,6 +115,8 @@ provider_config["providers"][provider] = {
     **provider_config["providers"].get(provider, {}),
     "authToken": token,
 }
+if base_url:
+    provider_config["providers"][provider]["baseUrl"] = base_url
 
 with open(provider_file, "w", encoding="utf-8") as handle:
     json.dump(provider_config, handle, indent=2)
@@ -108,6 +128,8 @@ if provider_config.get("activeProvider") == provider and os.path.exists(settings
         **settings.get("env", {}),
         "ANTHROPIC_AUTH_TOKEN": token,
     }
+    if base_url:
+        settings["env"]["ANTHROPIC_BASE_URL"] = base_url
     with open(settings_file, "w", encoding="utf-8") as handle:
         json.dump(settings, handle, indent=2)
         handle.write("\n")
@@ -118,6 +140,7 @@ const fs = require("fs");
 
 const provider = process.env.PROVIDER;
 const token = process.env.TOKEN;
+const baseUrl = process.env.BASE_URL || "";
 const providerFile = process.env.PROVIDER_FILE;
 const settingsFile = process.env.SETTINGS_FILE;
 
@@ -139,6 +162,9 @@ providerConfig.providers[provider] = {
   ...(providerConfig.providers[provider] || {}),
   authToken: token,
 };
+if (baseUrl) {
+  providerConfig.providers[provider].baseUrl = baseUrl;
+}
 
 fs.writeFileSync(providerFile, `${JSON.stringify(providerConfig, null, 2)}\n`, { mode: 0o600 });
 
@@ -148,6 +174,9 @@ if (providerConfig.activeProvider === provider && fs.existsSync(settingsFile)) {
     ...(settings.env || {}),
     ANTHROPIC_AUTH_TOKEN: token,
   };
+  if (baseUrl) {
+    settings.env.ANTHROPIC_BASE_URL = baseUrl;
+  }
   fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
 }
 NODE

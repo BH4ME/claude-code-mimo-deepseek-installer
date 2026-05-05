@@ -17,12 +17,25 @@ if (Get-Command claude-provider -ErrorAction SilentlyContinue) {
 }
 
 $ModelArg = if ($args.Count -gt 0) { $args[0] } else { "" }
-$BaseUrl = if ($env:MIMO_ANTHROPIC_BASE_URL) { $env:MIMO_ANTHROPIC_BASE_URL } else { "https://api.xiaomimimo.com/anthropic" }
+
+function Get-MimoBaseUrl {
+  if ($env:MIMO_ANTHROPIC_BASE_URL) {
+    return $env:MIMO_ANTHROPIC_BASE_URL
+  }
+
+  if ($env:MIMO_API_KEY -like "tp-*") {
+    return "https://token-plan-cn.xiaomimimo.com/anthropic"
+  }
+
+  return "https://api.xiaomimimo.com/anthropic"
+}
+
+$BaseUrl = Get-MimoBaseUrl
 
 switch ($ModelArg) {
   { $_ -in @("flash", "v2-flash", "mimo-v2-flash") } { $Model = "mimo-v2-flash"; break }
-  { $_ -in @("pro", "v2-pro", "mimo-v2-pro") } { $Model = "mimo-v2-pro"; break }
-  { $_ -in @("omni", "v2-omni", "mimo-v2-omni") } { $Model = "mimo-v2-omni"; break }
+  { $_ -in @("pro", "v2.5-pro", "mimo-v2.5-pro", "v2-pro", "mimo-v2-pro") } { $Model = "mimo-v2.5-pro"; break }
+  { $_ -in @("omni", "v2.5", "mimo-v2.5", "v2-omni", "mimo-v2-omni") } { $Model = "mimo-v2.5"; break }
   { $_ -in @("--help", "-h", "") } {
     Write-Host "Usage: .\switch-mimo.ps1 <flash|pro|omni|model-name>"
     Write-Host ""

@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$Model = if ($env:MIMO_MODEL) { $env:MIMO_MODEL } else { "mimo-v2-flash" }
-$BaseUrl = if ($env:MIMO_ANTHROPIC_BASE_URL) { $env:MIMO_ANTHROPIC_BASE_URL } else { "https://api.xiaomimimo.com/anthropic" }
+$Model = if ($env:MIMO_MODEL) { $env:MIMO_MODEL } else { "mimo-v2.5-pro" }
 $DeepSeekBaseUrl = if ($env:DEEPSEEK_ANTHROPIC_BASE_URL) { $env:DEEPSEEK_ANTHROPIC_BASE_URL } else { "https://api.deepseek.com/anthropic" }
 $SkipMimoConfig = $env:SKIP_MIMO_CONFIG -eq "1"
 
@@ -16,8 +15,8 @@ foreach ($arg in $args) {
       Write-Host ""
       Write-Host "Environment:"
       Write-Host "  MIMO_API_KEY                 Xiaomi MiMo API key"
-      Write-Host "  MIMO_MODEL                   Model name, default: mimo-v2-flash"
-      Write-Host "  MIMO_ANTHROPIC_BASE_URL      API base URL"
+      Write-Host "  MIMO_MODEL                   Model name, default: mimo-v2.5-pro"
+      Write-Host "  MIMO_ANTHROPIC_BASE_URL      API base URL; auto-detected for sk-/tp- keys if unset"
       Write-Host "  DEEPSEEK_API_KEY             Optional DeepSeek API key for provider switching"
       Write-Host "  DEEPSEEK_ANTHROPIC_BASE_URL  DeepSeek API base URL"
       Write-Host "  SKIP_MIMO_CONFIG=1           Install tools only; configure API later"
@@ -196,6 +195,20 @@ function Get-NpmClaudePackagePath {
   catch {
     return $null
   }
+}
+
+function Get-MimoBaseUrl {
+  param([string]$Token)
+
+  if ($env:MIMO_ANTHROPIC_BASE_URL) {
+    return $env:MIMO_ANTHROPIC_BASE_URL
+  }
+
+  if ($Token -like "tp-*") {
+    return "https://token-plan-cn.xiaomimimo.com/anthropic"
+  }
+
+  return "https://api.xiaomimimo.com/anthropic"
 }
 
 function Repair-ClaudeCodeNpmBinary {
@@ -429,11 +442,14 @@ if (-not $SkipMimoConfig -and -not $env:MIMO_API_KEY) {
   throw "MiMo API key is required."
 }
 
+$BaseUrl = Get-MimoBaseUrl $env:MIMO_API_KEY
+
 Install-ClaudeCodeNative
 
 if (-not $SkipMimoConfig) {
   $settingsDir = Join-Path $HOME ".claude"
   $settingsFile = Join-Path $settingsDir "settings.json"
+  $claudeJsonFile = Join-Path $HOME ".claude.json"
   $providerFile = Join-Path $settingsDir "provider-switch.json"
 
   $settings = Read-JsonFile $settingsFile
@@ -476,6 +492,10 @@ if (-not $SkipMimoConfig) {
   Set-MapValue $providerConfig "activeProvider" "mimo"
   Set-MapValue $providerConfig "activeModel" $Model
   Write-JsonFile $providerFile $providerConfig
+
+  $claudeJson = Read-JsonFile $claudeJsonFile
+  Set-MapValue $claudeJson "hasCompletedOnboarding" $true
+  Write-JsonFile $claudeJsonFile $claudeJson
 
   Write-Host "Done. Claude Code is configured for MiMo model: $Model"
 }

@@ -15,7 +15,7 @@ Usage:
 Environment:
   MIMO_API_KEY                 Xiaomi MiMo API key
   DEEPSEEK_API_KEY             DeepSeek API key
-  MIMO_ANTHROPIC_BASE_URL      Default: https://api.xiaomimimo.com/anthropic
+  MIMO_ANTHROPIC_BASE_URL      Override MiMo Anthropic base URL
   DEEPSEEK_ANTHROPIC_BASE_URL  Default: https://api.deepseek.com/anthropic
 
 Examples:
@@ -27,20 +27,29 @@ Examples:
 USAGE
 }
 
+get_mimo_base_url() {
+  local token="${1:-}"
+  if [[ "${token}" == tp-* ]]; then
+    printf '%s\n' "https://token-plan-cn.xiaomimimo.com/anthropic"
+  else
+    printf '%s\n' "https://api.xiaomimimo.com/anthropic"
+  fi
+}
+
 case "${PROVIDER_ARG}" in
   mimo|xiaomi-mimo)
     PROVIDER="mimo"
-    BASE_URL="${MIMO_ANTHROPIC_BASE_URL:-https://api.xiaomimimo.com/anthropic}"
     TOKEN="${MIMO_API_KEY:-}"
+    BASE_URL="${MIMO_ANTHROPIC_BASE_URL:-}"
     case "${MODEL_ARG}" in
       flash|v2-flash|mimo-v2-flash|"")
         MODEL="mimo-v2-flash"
         ;;
-      pro|v2-pro|mimo-v2-pro)
-        MODEL="mimo-v2-pro"
+      pro|v2.5-pro|mimo-v2.5-pro|v2-pro|mimo-v2-pro)
+        MODEL="mimo-v2.5-pro"
         ;;
-      omni|v2-omni|mimo-v2-omni)
-        MODEL="mimo-v2-omni"
+      omni|v2.5|mimo-v2.5|v2-omni|mimo-v2-omni)
+        MODEL="mimo-v2.5"
         ;;
       --help|-h)
         usage
@@ -120,14 +129,22 @@ def read_json(path):
 
 provider_config = read_json(provider_file)
 provider_config["providers"] = provider_config.get("providers", {})
+existing_provider = provider_config["providers"].get(provider, {})
+token = token_from_env or existing_provider.get("authToken")
+if base_url:
+    effective_base_url = base_url
+elif provider == "mimo":
+    effective_base_url = "https://token-plan-cn.xiaomimimo.com/anthropic" if str(token or "").startswith("tp-") else "https://api.xiaomimimo.com/anthropic"
+else:
+    effective_base_url = "https://api.deepseek.com/anthropic"
+
 provider_config["providers"][provider] = {
-    **provider_config["providers"].get(provider, {}),
-    "baseUrl": base_url,
+    **existing_provider,
+    "baseUrl": effective_base_url,
 }
 if token_from_env:
     provider_config["providers"][provider]["authToken"] = token_from_env
 
-token = provider_config["providers"][provider].get("authToken")
 if not token:
     env_name = "MIMO_API_KEY" if provider == "mimo" else "DEEPSEEK_API_KEY"
     print(f"Missing API key for {provider}. Re-run with {env_name}=... once.", file=sys.stderr)
@@ -142,7 +159,7 @@ with open(provider_file, "w", encoding="utf-8") as handle:
 settings = read_json(settings_file)
 settings["env"] = {
     **settings.get("env", {}),
-    "ANTHROPIC_BASE_URL": base_url,
+    "ANTHROPIC_BASE_URL": effective_base_url,
     "ANTHROPIC_AUTH_TOKEN": token,
     "ANTHROPIC_MODEL": model,
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": model,
@@ -162,7 +179,7 @@ const settingsFile = process.env.SETTINGS_FILE;
 const providerFile = process.env.PROVIDER_FILE;
 const provider = process.env.PROVIDER;
 const model = process.env.MODEL;
-const baseUrl = process.env.BASE_URL;
+const baseUrlFromEnv = process.env.BASE_URL || "";
 const tokenFromEnv = process.env.TOKEN || "";
 
 function readJson(file) {
@@ -179,8 +196,18 @@ function readJson(file) {
 
 const providerConfig = readJson(providerFile);
 providerConfig.providers = providerConfig.providers || {};
+const existingProvider = providerConfig.providers[provider] || {};
+const token = tokenFromEnv || existingProvider.authToken;
+const baseUrl =
+  baseUrlFromEnv ||
+  (provider === "mimo" && String(token || "").startsWith("tp-")
+    ? "https://token-plan-cn.xiaomimimo.com/anthropic"
+    : provider === "mimo"
+      ? "https://api.xiaomimimo.com/anthropic"
+      : "https://api.deepseek.com/anthropic");
+
 providerConfig.providers[provider] = {
-  ...(providerConfig.providers[provider] || {}),
+  ...existingProvider,
   baseUrl,
 };
 
@@ -188,7 +215,6 @@ if (tokenFromEnv) {
   providerConfig.providers[provider].authToken = tokenFromEnv;
 }
 
-const token = providerConfig.providers[provider].authToken;
 if (!token) {
   const envName = provider === "mimo" ? "MIMO_API_KEY" : "DEEPSEEK_API_KEY";
   console.error(`Missing API key for ${provider}. Re-run with ${envName}=... once.`);

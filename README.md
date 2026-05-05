@@ -43,7 +43,7 @@ MIMO_API_KEY="<your-mimo-api-key>" DEEPSEEK_API_KEY="<your-deepseek-api-key>" ./
 指定模型：
 
 ```bash
-MIMO_API_KEY="<your-mimo-api-key>" MIMO_MODEL="mimo-v2-flash" ./install.sh
+MIMO_API_KEY="<your-mimo-api-key>" MIMO_MODEL="mimo-v2.5-pro" ./install.sh
 ```
 
 只安装 Claude Code 和切换工具，暂不写入 API key：
@@ -136,18 +136,26 @@ claude
 
 ## 配置内容
 
-脚本会写入 `~/.claude/settings.json`：
+脚本会按小米官方 Claude Code 接入文档写入 `~/.claude/settings.json`。`sk-...` 按量 API key 默认使用 `https://api.xiaomimimo.com/anthropic`；`tp-...` Token Plan key 默认使用 `https://token-plan-cn.xiaomimimo.com/anthropic`。如需使用专属 URL，可通过 `MIMO_ANTHROPIC_BASE_URL` 覆盖。
 
 ```json
 {
   "env": {
     "ANTHROPIC_BASE_URL": "https://api.xiaomimimo.com/anthropic",
     "ANTHROPIC_AUTH_TOKEN": "<your-mimo-api-key>",
-    "ANTHROPIC_MODEL": "mimo-v2-flash",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "mimo-v2-flash",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "mimo-v2-flash",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "mimo-v2-flash"
+    "ANTHROPIC_MODEL": "mimo-v2.5-pro",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "mimo-v2.5-pro",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "mimo-v2.5-pro",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "mimo-v2.5-pro"
   }
+}
+```
+
+脚本也会写入 `~/.claude.json`：
+
+```json
+{
+  "hasCompletedOnboarding": true
 }
 ```
 
@@ -156,8 +164,8 @@ claude
 MiMo 当前脚本内置快捷别名：
 
 - `flash` -> `mimo-v2-flash`
-- `pro` -> `mimo-v2-pro`
-- `omni` -> `mimo-v2-omni`
+- `pro` -> `mimo-v2.5-pro`
+- `omni` -> `mimo-v2.5`
 
 DeepSeek 当前脚本内置快捷别名：
 
@@ -194,8 +202,8 @@ DEEPSEEK_API_KEY="<your-deepseek-api-key>" claude-provider deepseek pro
 
 ```bash
 claude-provider mimo mimo-v2-flash
-claude-provider mimo mimo-v2-pro
-claude-provider mimo mimo-v2-omni
+claude-provider mimo mimo-v2.5-pro
+claude-provider mimo mimo-v2.5
 claude-provider deepseek deepseek-v4-pro
 ```
 

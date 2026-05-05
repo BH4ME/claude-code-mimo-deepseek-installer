@@ -5,6 +5,20 @@ $TokenArg = if ($args.Count -gt 1) { $args[1] } else { "" }
 $ProviderFile = Join-Path $HOME ".claude\provider-switch.json"
 $SettingsFile = Join-Path $HOME ".claude\settings.json"
 
+function Get-MimoBaseUrl {
+  param([string]$Token)
+
+  if ($env:MIMO_ANTHROPIC_BASE_URL) {
+    return $env:MIMO_ANTHROPIC_BASE_URL
+  }
+
+  if ($Token -like "tp-*") {
+    return "https://token-plan-cn.xiaomimimo.com/anthropic"
+  }
+
+  return "https://api.xiaomimimo.com/anthropic"
+}
+
 function Show-Usage {
   Write-Host "Usage:"
   Write-Host "  claude-provider-key mimo [api-key]"
@@ -55,6 +69,7 @@ New-Item -ItemType Directory -Force -Path $settingsDir | Out-Null
 
 $env:CLAUDE_KEY_PROVIDER = $Provider
 $env:CLAUDE_KEY_TOKEN = $Token
+$env:CLAUDE_KEY_BASE_URL = if ($Provider -eq "mimo") { Get-MimoBaseUrl $Token } else { "" }
 $env:CLAUDE_PROVIDER_FILE = $ProviderFile
 $env:CLAUDE_SETTINGS_FILE = $SettingsFile
 
@@ -63,6 +78,7 @@ const fs = require("fs");
 
 const provider = process.env.CLAUDE_KEY_PROVIDER;
 const token = process.env.CLAUDE_KEY_TOKEN;
+const baseUrl = process.env.CLAUDE_KEY_BASE_URL || "";
 const providerFile = process.env.CLAUDE_PROVIDER_FILE;
 const settingsFile = process.env.CLAUDE_SETTINGS_FILE;
 
@@ -84,6 +100,9 @@ providerConfig.providers[provider] = {
   ...(providerConfig.providers[provider] || {}),
   authToken: token,
 };
+if (baseUrl) {
+  providerConfig.providers[provider].baseUrl = baseUrl;
+}
 
 fs.writeFileSync(providerFile, `${JSON.stringify(providerConfig, null, 2)}\n`, { mode: 0o600 });
 
@@ -92,6 +111,7 @@ if (providerConfig.activeProvider === provider && fs.existsSync(settingsFile)) {
   settings.env = {
     ...(settings.env || {}),
     ANTHROPIC_AUTH_TOKEN: token,
+    ...(baseUrl ? { ANTHROPIC_BASE_URL: baseUrl } : {}),
   };
   fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
 }
