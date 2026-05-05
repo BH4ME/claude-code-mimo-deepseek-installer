@@ -138,6 +138,22 @@ claude
 
 脚本会按小米官方 Claude Code 接入文档写入 `~/.claude/settings.json`。`sk-...` 按量 API key 默认使用 `https://api.xiaomimimo.com/anthropic`；`tp-...` Token Plan key 默认使用 `https://token-plan-cn.xiaomimimo.com/anthropic`。如需使用专属 URL，可通过 `MIMO_ANTHROPIC_BASE_URL` 覆盖。
 
+如果你使用的是订阅管理里拿到的 `tp-...` Token Plan key，请确认配置里不是普通按量 URL。最简单的修复方式是重新保存 key 并应用 `pro`：
+
+```bash
+claude-provider-key mimo "tp-your-token-plan-key"
+claude-provider mimo pro
+```
+
+Windows PowerShell：
+
+```powershell
+claude-provider-key mimo "tp-your-token-plan-key"
+claude-provider mimo pro
+```
+
+如果 Claude Code 已经卡在 `Retrying in ... attempt .../10`，先按 `Ctrl+C` 退出旧会话，运行上面的两条命令后重新启动 `claude`。旧会话不会自动读取刚写入的新 URL。
+
 ```json
 {
   "env": {
@@ -272,3 +288,5 @@ claude-provider-key deepseek
 ```
 
 如果正在使用对应 provider，更换 key 后会同时更新 `~/.claude/settings.json`；如果不是当前 provider，只会先保存，等你下次 `claude-provider deepseek pro` 或 `claude-provider mimo flash` 时生效。
+
+Token Plan 用户请使用 `tp-...` key。脚本会自动把 MiMo base URL 切到 `https://token-plan-cn.xiaomimimo.com/anthropic`；按量用户使用 `sk-...` key 时会自动使用 `https://api.xiaomimimo.com/anthropic`。
