@@ -22,7 +22,7 @@ function Read-Json {
 function Invoke-Provider {
   param(
     [string]$HomeDir,
-    [string[]]$Args,
+    [string[]]$ProviderArgs,
     [hashtable]$Env = @{}
   )
 
@@ -33,7 +33,7 @@ function Invoke-Provider {
   $env:MIMO_API_KEY = $Env["MIMO_API_KEY"]
   $env:DEEPSEEK_API_KEY = $Env["DEEPSEEK_API_KEY"]
   try {
-    & (Join-Path $RootDir "switch-provider.ps1") @Args | Out-Null
+    & (Join-Path $RootDir "switch-provider.ps1") @ProviderArgs | Out-Null
     if ($LASTEXITCODE -ne 0) {
       throw "switch-provider.ps1 exited with $LASTEXITCODE"
     }
@@ -48,7 +48,7 @@ function Invoke-Provider {
 function Invoke-Mimo {
   param(
     [string]$HomeDir,
-    [string[]]$Args,
+    [string[]]$MimoArgs,
     [hashtable]$Env = @{}
   )
 
@@ -57,7 +57,7 @@ function Invoke-Mimo {
   $env:CLAUDE_HOME = $HomeDir
   $env:MIMO_API_KEY = $Env["MIMO_API_KEY"]
   try {
-    & (Join-Path $RootDir "switch-mimo.ps1") @Args | Out-Null
+    & (Join-Path $RootDir "switch-mimo.ps1") @MimoArgs | Out-Null
     if ($LASTEXITCODE -ne 0) {
       throw "switch-mimo.ps1 exited with $LASTEXITCODE"
     }
