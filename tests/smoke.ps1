@@ -28,9 +28,7 @@ function Invoke-Provider {
 
   $script = Join-Path $RootDir "switch-provider.ps1"
   $command = @(
-    "`$HOME = '$($HomeDir.Replace("'", "''"))'",
-    "`$env:HOME = `$HOME",
-    "`$env:USERPROFILE = `$HOME",
+    "`$env:CLAUDE_HOME = '$($HomeDir.Replace("'", "''"))'",
     "`$env:MIMO_API_KEY = '$($Env["MIMO_API_KEY"])'",
     "`$env:DEEPSEEK_API_KEY = '$($Env["DEEPSEEK_API_KEY"])'",
     "& '$($script.Replace("'", "''"))' $($Args -join ' ')"
@@ -51,9 +49,7 @@ function Invoke-Mimo {
 
   $script = Join-Path $RootDir "switch-mimo.ps1"
   $command = @(
-    "`$HOME = '$($HomeDir.Replace("'", "''"))'",
-    "`$env:HOME = `$HOME",
-    "`$env:USERPROFILE = `$HOME",
+    "`$env:CLAUDE_HOME = '$($HomeDir.Replace("'", "''"))'",
     "`$env:MIMO_API_KEY = '$($Env["MIMO_API_KEY"])'",
     "& '$($script.Replace("'", "''"))' $($Args -join ' ')"
   ) -join "; "

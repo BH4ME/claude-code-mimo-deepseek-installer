@@ -2,8 +2,9 @@ $ErrorActionPreference = "Stop"
 
 $ProviderArg = if ($args.Count -gt 0) { $args[0] } else { "" }
 $ModelArg = if ($args.Count -gt 1) { $args[1] } else { "" }
-$SettingsFile = Join-Path $HOME ".claude\settings.json"
-$ProviderFile = Join-Path $HOME ".claude\provider-switch.json"
+$ClaudeHome = if ($env:CLAUDE_HOME) { $env:CLAUDE_HOME } else { $HOME }
+$SettingsFile = Join-Path $ClaudeHome ".claude\settings.json"
+$ProviderFile = Join-Path $ClaudeHome ".claude\provider-switch.json"
 
 function Show-Usage {
   Write-Host "Usage:"

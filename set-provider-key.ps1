@@ -2,8 +2,9 @@ $ErrorActionPreference = "Stop"
 
 $ProviderArg = if ($args.Count -gt 0) { $args[0] } else { "" }
 $TokenArg = if ($args.Count -gt 1) { $args[1] } else { "" }
-$ProviderFile = Join-Path $HOME ".claude\provider-switch.json"
-$SettingsFile = Join-Path $HOME ".claude\settings.json"
+$ClaudeHome = if ($env:CLAUDE_HOME) { $env:CLAUDE_HOME } else { $HOME }
+$ProviderFile = Join-Path $ClaudeHome ".claude\provider-switch.json"
+$SettingsFile = Join-Path $ClaudeHome ".claude\settings.json"
 
 function Get-MimoBaseUrl {
   param([string]$Token)

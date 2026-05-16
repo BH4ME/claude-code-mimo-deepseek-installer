@@ -48,7 +48,8 @@ switch ($ModelArg) {
   }
 }
 
-$settingsDir = Join-Path $HOME ".claude"
+$claudeHome = if ($env:CLAUDE_HOME) { $env:CLAUDE_HOME } else { $HOME }
+$settingsDir = Join-Path $claudeHome ".claude"
 $settingsFile = Join-Path $settingsDir "settings.json"
 New-Item -ItemType Directory -Force -Path $settingsDir | Out-Null
 
