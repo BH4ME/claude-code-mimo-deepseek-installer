@@ -8,7 +8,8 @@ if (Test-Path $providerCmd) {
   exit $LASTEXITCODE
 }
 if (Test-Path $providerPs1) {
-  & powershell -NoProfile -ExecutionPolicy Bypass -File $providerPs1 mimo @args
+  $shell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+  & $shell -NoProfile -ExecutionPolicy Bypass -File $providerPs1 mimo @args
   exit $LASTEXITCODE
 }
 if (Get-Command claude-provider -ErrorAction SilentlyContinue) {

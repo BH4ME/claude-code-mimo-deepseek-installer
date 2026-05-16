@@ -65,6 +65,18 @@ MIMO_API_KEY="tp-test" run_mimo "${case_dir}" pro >/dev/null
 [ "$(json_value "${case_dir}/.claude/settings.json" "env.ANTHROPIC_MODEL")" = "mimo-v2.5-pro" ] || fail "claude-mimo pro fallback should map to mimo-v2.5-pro"
 [ "$(json_value "${case_dir}/.claude/settings.json" "env.ANTHROPIC_BASE_URL")" = "https://token-plan-cn.xiaomimimo.com/anthropic" ] || fail "claude-mimo fallback should detect token-plan base URL"
 
+case_dir="${tmp}/mimo-local-provider-priority"
+fake_bin="${tmp}/fake-bin"
+mkdir -p "${case_dir}" "${fake_bin}"
+cat > "${fake_bin}/claude-provider" <<'SH'
+#!/usr/bin/env bash
+echo "stale PATH claude-provider should not run" >&2
+exit 88
+SH
+chmod +x "${fake_bin}/claude-provider"
+HOME="${case_dir}" PATH="${fake_bin}:${BASE_PATH}" MIMO_API_KEY="sk-test" "$ROOT_DIR/switch-mimo.sh" pro >/dev/null
+[ "$(json_value "${case_dir}/.claude/settings.json" "env.ANTHROPIC_MODEL")" = "mimo-v2.5-pro" ] || fail "claude-mimo should prefer local switch-provider.sh over stale PATH claude-provider"
+
 case_dir="${tmp}/missing-key"
 mkdir -p "${case_dir}"
 set +e

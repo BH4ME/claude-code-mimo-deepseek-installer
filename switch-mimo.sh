@@ -5,6 +5,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -x "${SCRIPT_DIR}/claude-provider" ]; then
   exec "${SCRIPT_DIR}/claude-provider" mimo "$@"
 fi
+if [ -x "${SCRIPT_DIR}/switch-provider.sh" ]; then
+  exec "${SCRIPT_DIR}/switch-provider.sh" mimo "$@"
+fi
 if command -v claude-provider >/dev/null 2>&1; then
   exec claude-provider mimo "$@"
 fi

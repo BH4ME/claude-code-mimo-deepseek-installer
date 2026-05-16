@@ -1,0 +1,27 @@
+name: Smoke Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  shell:
+    name: Shell smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run shell smoke tests
+        run: bash tests/smoke.sh
+
+  powershell:
+    name: PowerShell smoke (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PowerShell smoke tests
+        shell: pwsh
+        run: ./tests/smoke.ps1
