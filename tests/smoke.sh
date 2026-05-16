@@ -47,6 +47,13 @@ mkdir -p "${case_dir}"
 MIMO_API_KEY="sk-test" run_provider "${case_dir}" mimo pro >/dev/null
 [ "$(json_value "${case_dir}/.claude/settings.json" "env.ANTHROPIC_MODEL")" = "mimo-v2.5-pro" ] || fail "mimo pro should map to mimo-v2.5-pro"
 [ "$(json_value "${case_dir}/.claude/settings.json" "env.ANTHROPIC_BASE_URL")" = "https://api.xiaomimimo.com/anthropic" ] || fail "sk MiMo key should use default API base URL"
+python3 - "${case_dir}/.claude/settings.json" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as handle:
+    env = json.load(handle)["env"]
+if "ANTHROPIC_AUTH_TOKEN" in env:
+    raise SystemExit("FAIL: settings should not contain ANTHROPIC_AUTH_TOKEN")
+PY
 
 case_dir="${tmp}/mimo-token-plan"
 mkdir -p "${case_dir}"

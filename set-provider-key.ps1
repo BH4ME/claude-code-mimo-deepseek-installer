@@ -112,9 +112,9 @@ if (providerConfig.activeProvider === provider && fs.existsSync(settingsFile)) {
   settings.env = {
     ...(settings.env || {}),
     ANTHROPIC_API_KEY: token,
-    ANTHROPIC_AUTH_TOKEN: token,
     ...(baseUrl ? { ANTHROPIC_BASE_URL: baseUrl } : {}),
   };
+  delete settings.env.ANTHROPIC_AUTH_TOKEN;
   fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
 }
 '@ | node

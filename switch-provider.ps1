@@ -131,7 +131,6 @@ settings.env = {
   ...(settings.env || {}),
   ANTHROPIC_BASE_URL: baseUrl,
   ANTHROPIC_API_KEY: token,
-  ANTHROPIC_AUTH_TOKEN: token,
   ANTHROPIC_MODEL: model,
   ANTHROPIC_DEFAULT_HAIKU_MODEL: model,
   ANTHROPIC_DEFAULT_SONNET_MODEL: model,

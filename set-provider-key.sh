@@ -127,8 +127,8 @@ if provider_config.get("activeProvider") == provider and os.path.exists(settings
     settings["env"] = {
         **settings.get("env", {}),
         "ANTHROPIC_API_KEY": token,
-        "ANTHROPIC_AUTH_TOKEN": token,
     }
+    settings["env"].pop("ANTHROPIC_AUTH_TOKEN", None)
     if base_url:
         settings["env"]["ANTHROPIC_BASE_URL"] = base_url
     with open(settings_file, "w", encoding="utf-8") as handle:
@@ -174,8 +174,8 @@ if (providerConfig.activeProvider === provider && fs.existsSync(settingsFile)) {
   settings.env = {
     ...(settings.env || {}),
     ANTHROPIC_API_KEY: token,
-    ANTHROPIC_AUTH_TOKEN: token,
   };
+  delete settings.env.ANTHROPIC_AUTH_TOKEN;
   if (baseUrl) {
     settings.env.ANTHROPIC_BASE_URL = baseUrl;
   }

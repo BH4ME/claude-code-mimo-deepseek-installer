@@ -175,7 +175,7 @@ settings = read_json(settings_file, "settings")
 settings["env"] = {
     **settings.get("env", {}),
     "ANTHROPIC_BASE_URL": base_url,
-    "ANTHROPIC_AUTH_TOKEN": token,
+    "ANTHROPIC_API_KEY": token,
     "ANTHROPIC_MODEL": model,
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": model,
     "ANTHROPIC_DEFAULT_SONNET_MODEL": model,
@@ -245,7 +245,7 @@ const settings = readJson(settingsFile, "settings");
 settings.env = {
   ...(settings.env || {}),
   ANTHROPIC_BASE_URL: baseUrl,
-  ANTHROPIC_AUTH_TOKEN: token,
+  ANTHROPIC_API_KEY: token,
   ANTHROPIC_MODEL: model,
   ANTHROPIC_DEFAULT_HAIKU_MODEL: model,
   ANTHROPIC_DEFAULT_SONNET_MODEL: model,
@@ -292,7 +292,7 @@ NODE
 {
   "env": {
     "ANTHROPIC_BASE_URL": "${BASE_URL}",
-    "ANTHROPIC_AUTH_TOKEN": "${MIMO_API_KEY}",
+    "ANTHROPIC_API_KEY": "${MIMO_API_KEY}",
     "ANTHROPIC_MODEL": "${MODEL}",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "${MODEL}",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "${MODEL}",
