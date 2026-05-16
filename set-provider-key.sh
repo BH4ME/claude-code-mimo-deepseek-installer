@@ -126,6 +126,7 @@ if provider_config.get("activeProvider") == provider and os.path.exists(settings
     settings = read_json(settings_file)
     settings["env"] = {
         **settings.get("env", {}),
+        "ANTHROPIC_API_KEY": token,
         "ANTHROPIC_AUTH_TOKEN": token,
     }
     if base_url:
@@ -172,6 +173,7 @@ if (providerConfig.activeProvider === provider && fs.existsSync(settingsFile)) {
   const settings = readJson(settingsFile);
   settings.env = {
     ...(settings.env || {}),
+    ANTHROPIC_API_KEY: token,
     ANTHROPIC_AUTH_TOKEN: token,
   };
   if (baseUrl) {

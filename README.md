@@ -122,7 +122,33 @@ claude-provider-key mimo "sk-or-tp-..."
 claude-provider mimo pro
 ```
 
-如果 Claude Code 卡在 `Retrying in ... attempt .../10`，按 `Ctrl+C` 退出旧会话，重新保存 key 并切换模型后再运行 `claude`。
+如果 Claude Code 卡在 `Retrying in ... attempt .../10`:
+
+```bash
+Ctrl+C
+claude-provider-key mimo "sk-or-tp-..."
+claude-provider mimo pro
+cat ~/.claude/settings.json
+```
+
+确认 `settings.json` 里已经有:
+
+- `ANTHROPIC_API_KEY`
+- `ANTHROPIC_BASE_URL`
+- `ANTHROPIC_MODEL`
+
+然后重新运行:
+
+```bash
+claude
+```
+
+如果启动页仍然显示官方 `pro / API Usage Billing`，通常说明 Claude 还在用旧会话。先退出旧进程再重开:
+
+```bash
+pkill -f claude
+claude
+```
 
 Windows 如果 `claude` 无法识别，重开 PowerShell/CMD。仍不行时检查:
 

@@ -111,6 +111,7 @@ if (providerConfig.activeProvider === provider && fs.existsSync(settingsFile)) {
   const settings = readJson(settingsFile);
   settings.env = {
     ...(settings.env || {}),
+    ANTHROPIC_API_KEY: token,
     ANTHROPIC_AUTH_TOKEN: token,
     ...(baseUrl ? { ANTHROPIC_BASE_URL: baseUrl } : {}),
   };

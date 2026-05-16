@@ -130,11 +130,18 @@ const settings = readJson(settingsFile);
 settings.env = {
   ...(settings.env || {}),
   ANTHROPIC_BASE_URL: baseUrl,
+  ANTHROPIC_API_KEY: token,
   ANTHROPIC_AUTH_TOKEN: token,
   ANTHROPIC_MODEL: model,
   ANTHROPIC_DEFAULT_HAIKU_MODEL: model,
   ANTHROPIC_DEFAULT_SONNET_MODEL: model,
   ANTHROPIC_DEFAULT_OPUS_MODEL: model,
+  ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME: `${provider}:${model}`,
+  ANTHROPIC_DEFAULT_SONNET_MODEL_NAME: `${provider}:${model}`,
+  ANTHROPIC_DEFAULT_OPUS_MODEL_NAME: `${provider}:${model}`,
+  ANTHROPIC_CUSTOM_MODEL_OPTION: model,
+  ANTHROPIC_CUSTOM_MODEL_OPTION_NAME: `${provider}:${model}`,
+  ANTHROPIC_SMALL_FAST_MODEL: model,
 };
 
 if (settings.includeCoAuthoredBy === undefined) {
