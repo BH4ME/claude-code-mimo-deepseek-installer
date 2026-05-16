@@ -36,6 +36,47 @@ get_mimo_base_url() {
   fi
 }
 
+ensure_shell_profile_path() {
+  local install_dir="$1"
+  local profile_file shell_name marker
+
+  if [[ ":${PATH}:" != *":${install_dir}:"* ]]; then
+    export PATH="${install_dir}:${PATH}"
+    hash -r 2>/dev/null || true
+  fi
+
+  shell_name="$(basename "${SHELL:-}")"
+  case "${shell_name}" in
+    zsh)
+      profile_file="${HOME}/.zshrc"
+      ;;
+    bash)
+      if [ "$(uname -s 2>/dev/null || true)" = "Darwin" ]; then
+        profile_file="${HOME}/.bash_profile"
+      else
+        profile_file="${HOME}/.bashrc"
+      fi
+      ;;
+    *)
+      profile_file="${HOME}/.profile"
+      ;;
+  esac
+
+  marker="claude-code-mimo PATH"
+  if [ -f "${profile_file}" ] && grep -Fq "${install_dir}" "${profile_file}"; then
+    echo "PATH already includes ${install_dir} in ${profile_file}"
+    return
+  fi
+
+  {
+    echo ""
+    echo "# ${marker}"
+    echo "export PATH=\"${install_dir}:\$PATH\""
+  } >> "${profile_file}"
+
+  echo "Added ${install_dir} to ${profile_file}"
+}
+
 install_provider_switcher() {
   local install_dir target source_url
 
@@ -55,6 +96,7 @@ install_provider_switcher() {
   echo "Provider switcher installed to: ${target}"
   echo "Switch provider/model with: ${target} mimo flash"
   echo "Switch provider/model with: ${target} deepseek pro"
+  ensure_shell_profile_path "${install_dir}"
 }
 
 install_provider_key_setter() {
@@ -76,6 +118,7 @@ install_provider_key_setter() {
   echo "Provider API key setter installed to: ${target}"
   echo "Change API key with: ${target} mimo"
   echo "Change API key with: ${target} deepseek"
+  ensure_shell_profile_path "${install_dir}"
 }
 
 install_mimo_switcher() {
@@ -95,11 +138,8 @@ install_mimo_switcher() {
 
   chmod +x "${target}"
   echo "MiMo model switcher installed to: ${target}"
-  if [[ ":${PATH}:" != *":${install_dir}:"* ]]; then
-    echo "Add this to your shell profile if claude-mimo is not found:"
-    echo "export PATH=\"${install_dir}:\$PATH\""
-  fi
   echo "Switch models with: ${target} flash"
+  ensure_shell_profile_path "${install_dir}"
 }
 
 write_initial_config() {
@@ -330,10 +370,7 @@ npm_install_claude_code() {
   npm config set prefix "${npm_prefix}" >/dev/null 2>&1 || true
   npm install -g @anthropic-ai/claude-code
 
-  if [[ ":${PATH}:" != *":${npm_prefix}/bin:"* ]]; then
-    echo "Add this to your shell profile if claude is not found:"
-    echo "export PATH=\"${npm_prefix}/bin:\$PATH\""
-  fi
+  ensure_shell_profile_path "${npm_prefix}/bin"
 }
 
 install_user_node() {
@@ -378,6 +415,7 @@ install_user_node() {
   ln -sf "${base_dir}/${strip_dir}/bin/npx" "${HOME}/.local/bin/npx"
   export PATH="${HOME}/.local/bin:${PATH}"
   export NPM_GLOBAL_PREFIX="${HOME}/.local"
+  ensure_shell_profile_path "${HOME}/.local/bin"
   hash -r 2>/dev/null || true
 
   echo "User-local Node.js installed to: ${base_dir}/${strip_dir}"
