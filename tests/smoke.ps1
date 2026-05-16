@@ -26,22 +26,19 @@ function Invoke-Provider {
     [hashtable]$Env = @{}
   )
 
-  $oldHome = $env:HOME
-  $oldMimoKey = $env:MIMO_API_KEY
-  $oldDeepSeekKey = $env:DEEPSEEK_API_KEY
-  $env:HOME = $HomeDir
-  $env:MIMO_API_KEY = $Env["MIMO_API_KEY"]
-  $env:DEEPSEEK_API_KEY = $Env["DEEPSEEK_API_KEY"]
-  try {
-    & (Join-Path $RootDir "switch-provider.ps1") @Args | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-      throw "switch-provider.ps1 exited with $LASTEXITCODE"
-    }
-  }
-  finally {
-    $env:HOME = $oldHome
-    $env:MIMO_API_KEY = $oldMimoKey
-    $env:DEEPSEEK_API_KEY = $oldDeepSeekKey
+  $script = Join-Path $RootDir "switch-provider.ps1"
+  $command = @(
+    "`$HOME = '$($HomeDir.Replace("'", "''"))'",
+    "`$env:HOME = `$HOME",
+    "`$env:USERPROFILE = `$HOME",
+    "`$env:MIMO_API_KEY = '$($Env["MIMO_API_KEY"])'",
+    "`$env:DEEPSEEK_API_KEY = '$($Env["DEEPSEEK_API_KEY"])'",
+    "& '$($script.Replace("'", "''"))' $($Args -join ' ')"
+  ) -join "; "
+
+  & pwsh -NoProfile -ExecutionPolicy Bypass -Command $command | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "switch-provider.ps1 exited with $LASTEXITCODE"
   }
 }
 
@@ -52,19 +49,18 @@ function Invoke-Mimo {
     [hashtable]$Env = @{}
   )
 
-  $oldHome = $env:HOME
-  $oldMimoKey = $env:MIMO_API_KEY
-  $env:HOME = $HomeDir
-  $env:MIMO_API_KEY = $Env["MIMO_API_KEY"]
-  try {
-    & (Join-Path $RootDir "switch-mimo.ps1") @Args | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-      throw "switch-mimo.ps1 exited with $LASTEXITCODE"
-    }
-  }
-  finally {
-    $env:HOME = $oldHome
-    $env:MIMO_API_KEY = $oldMimoKey
+  $script = Join-Path $RootDir "switch-mimo.ps1"
+  $command = @(
+    "`$HOME = '$($HomeDir.Replace("'", "''"))'",
+    "`$env:HOME = `$HOME",
+    "`$env:USERPROFILE = `$HOME",
+    "`$env:MIMO_API_KEY = '$($Env["MIMO_API_KEY"])'",
+    "& '$($script.Replace("'", "''"))' $($Args -join ' ')"
+  ) -join "; "
+
+  & pwsh -NoProfile -ExecutionPolicy Bypass -Command $command | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "switch-mimo.ps1 exited with $LASTEXITCODE"
   }
 }
 
