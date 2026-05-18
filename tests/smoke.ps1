@@ -91,12 +91,21 @@ try {
   Invoke-Provider $caseDir @("deepseek", "pro") @{ DEEPSEEK_API_KEY = "sk-deepseek" }
   $settings = Read-Json (Join-Path $caseDir ".claude\settings.json")
   Assert-Equal $settings.env.ANTHROPIC_MODEL "deepseek-v4-pro" "deepseek pro should map to deepseek-v4-pro"
+  Assert-Equal $settings.env.ANTHROPIC_BASE_URL "https://api.deepseek.com/anthropic" "deepseek should use default API base URL"
 
   $caseDir = Join-Path $tmp "mimo-local-provider-priority"
   New-Item -ItemType Directory -Force -Path $caseDir | Out-Null
   Invoke-Mimo $caseDir @("pro") @{ MIMO_API_KEY = "sk-test" }
   $settings = Read-Json (Join-Path $caseDir ".claude\settings.json")
   Assert-Equal $settings.env.ANTHROPIC_MODEL "mimo-v2.5-pro" "claude-mimo should use the local switch-provider.ps1"
+
+  $installText = Get-Content -Raw -Path (Join-Path $RootDir "install.ps1")
+  if ($installText -notmatch "Enter your DeepSeek API key") {
+    throw "install.ps1 should prompt for DeepSeek API key by default"
+  }
+  if ($installText -notmatch 'activeProvider"\s*"deepseek"|activeProvider = "deepseek"') {
+    throw "install.ps1 should default active provider to deepseek"
+  }
 
   Write-Host "PowerShell smoke tests passed."
 }

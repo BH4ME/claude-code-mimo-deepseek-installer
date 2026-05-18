@@ -1,25 +1,25 @@
 $ErrorActionPreference = "Stop"
 
-$Model = if ($env:MIMO_MODEL) { $env:MIMO_MODEL } else { "mimo-v2.5-pro" }
+$Model = if ($env:DEEPSEEK_MODEL) { $env:DEEPSEEK_MODEL } else { "deepseek-v4-pro" }
 $DeepSeekBaseUrl = if ($env:DEEPSEEK_ANTHROPIC_BASE_URL) { $env:DEEPSEEK_ANTHROPIC_BASE_URL } else { "https://api.deepseek.com/anthropic" }
-$SkipMimoConfig = $env:SKIP_MIMO_CONFIG -eq "1"
+$SkipProviderConfig = ($env:SKIP_PROVIDER_CONFIG -eq "1") -or ($env:SKIP_MIMO_CONFIG -eq "1")
 
 foreach ($arg in $args) {
   switch ($arg) {
     { $_ -in @("--skip-api-key", "--skip-mimo-config") } {
-      $SkipMimoConfig = $true
+      $SkipProviderConfig = $true
       break
     }
     { $_ -in @("--help", "-h") } {
       Write-Host "Usage: install.ps1 [--skip-api-key]"
       Write-Host ""
       Write-Host "Environment:"
-      Write-Host "  MIMO_API_KEY                 Xiaomi MiMo API key"
-      Write-Host "  MIMO_MODEL                   Model name, default: mimo-v2.5-pro"
-      Write-Host "  MIMO_ANTHROPIC_BASE_URL      API base URL; auto-detected for sk-/tp- keys if unset"
-      Write-Host "  DEEPSEEK_API_KEY             Optional DeepSeek API key for provider switching"
+      Write-Host "  DEEPSEEK_API_KEY             DeepSeek API key"
+      Write-Host "  DEEPSEEK_MODEL               Model name, default: deepseek-v4-pro"
       Write-Host "  DEEPSEEK_ANTHROPIC_BASE_URL  DeepSeek API base URL"
-      Write-Host "  SKIP_MIMO_CONFIG=1           Install tools only; configure API later"
+      Write-Host "  MIMO_API_KEY                 Optional Xiaomi MiMo API key for provider switching"
+      Write-Host "  MIMO_ANTHROPIC_BASE_URL      API base URL; auto-detected for sk-/tp- keys if unset"
+      Write-Host "  SKIP_PROVIDER_CONFIG=1       Install tools only; configure API later"
       exit 0
     }
   }
@@ -427,26 +427,26 @@ function Install-MimoSwitcher {
   Write-Host "MiMo model switcher installed to: $installDir"
 }
 
-if (-not $SkipMimoConfig -and -not $env:MIMO_API_KEY) {
-  $secureKey = Read-Host "Enter your MiMo API key" -AsSecureString
+if (-not $SkipProviderConfig -and -not $env:DEEPSEEK_API_KEY) {
+  $secureKey = Read-Host "Enter your DeepSeek API key" -AsSecureString
   $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
   try {
-    $env:MIMO_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+    $env:DEEPSEEK_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
   }
   finally {
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
   }
 }
 
-if (-not $SkipMimoConfig -and -not $env:MIMO_API_KEY) {
-  throw "MiMo API key is required."
+if (-not $SkipProviderConfig -and -not $env:DEEPSEEK_API_KEY) {
+  throw "DeepSeek API key is required."
 }
 
-$BaseUrl = Get-MimoBaseUrl $env:MIMO_API_KEY
+$MimoBaseUrl = Get-MimoBaseUrl $env:MIMO_API_KEY
 
 Install-ClaudeCodeNative
 
-if (-not $SkipMimoConfig) {
+if (-not $SkipProviderConfig) {
   $settingsDir = Join-Path $HOME ".claude"
   $settingsFile = Join-Path $settingsDir "settings.json"
   $claudeJsonFile = Join-Path $HOME ".claude.json"
@@ -458,8 +458,8 @@ if (-not $SkipMimoConfig) {
   }
 
   $settingsEnv = Get-MapValue $settings "env"
-  Set-MapValue $settingsEnv "ANTHROPIC_BASE_URL" $BaseUrl
-  Set-MapValue $settingsEnv "ANTHROPIC_API_KEY" $env:MIMO_API_KEY
+  Set-MapValue $settingsEnv "ANTHROPIC_BASE_URL" $DeepSeekBaseUrl
+  Set-MapValue $settingsEnv "ANTHROPIC_API_KEY" $env:DEEPSEEK_API_KEY
   if (Test-MapKey $settingsEnv "ANTHROPIC_AUTH_TOKEN") {
     $settingsEnv.Remove("ANTHROPIC_AUTH_TOKEN") | Out-Null
   }
@@ -480,19 +480,19 @@ if (-not $SkipMimoConfig) {
   }
 
   $providers = Get-MapValue $providerConfig "providers"
-  Set-MapValue $providers "mimo" ([ordered]@{
-    baseUrl = $BaseUrl
-    authToken = $env:MIMO_API_KEY
+  Set-MapValue $providers "deepseek" ([ordered]@{
+    baseUrl = $DeepSeekBaseUrl
+    authToken = $env:DEEPSEEK_API_KEY
   })
 
-  if ($env:DEEPSEEK_API_KEY) {
-    Set-MapValue $providers "deepseek" ([ordered]@{
-      baseUrl = $DeepSeekBaseUrl
-      authToken = $env:DEEPSEEK_API_KEY
+  if ($env:MIMO_API_KEY) {
+    Set-MapValue $providers "mimo" ([ordered]@{
+      baseUrl = $MimoBaseUrl
+      authToken = $env:MIMO_API_KEY
     })
   }
 
-  Set-MapValue $providerConfig "activeProvider" "mimo"
+  Set-MapValue $providerConfig "activeProvider" "deepseek"
   Set-MapValue $providerConfig "activeModel" $Model
   Write-JsonFile $providerFile $providerConfig
 
@@ -500,10 +500,10 @@ if (-not $SkipMimoConfig) {
   Set-MapValue $claudeJson "hasCompletedOnboarding" $true
   Write-JsonFile $claudeJsonFile $claudeJson
 
-  Write-Host "Done. Claude Code is configured for MiMo model: $Model"
+  Write-Host "Done. Claude Code is configured for DeepSeek model: $Model"
 }
 else {
-  Write-Host "Skipped MiMo API configuration."
+  Write-Host "Skipped provider API configuration."
 }
 
 Install-MimoSwitcher
@@ -514,7 +514,6 @@ Install-ClaudeCommandShim
 Write-Host ""
 Write-Host "Restart CMD/PowerShell if new commands are not recognized."
 Write-Host "Run: claude"
-Write-Host "Switch provider/model with: claude-provider mimo flash"
-Write-Host "Switch provider/model with: claude-provider mimo pro"
-Write-Host "Switch provider/model with: claude-provider mimo omni"
 Write-Host "Switch provider/model with: claude-provider deepseek pro"
+Write-Host "Switch provider/model with: claude-provider deepseek flash"
+Write-Host "Switch provider/model with: claude-provider mimo pro"

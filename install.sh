@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODEL="${MIMO_MODEL:-mimo-v2.5-pro}"
+MODEL="${DEEPSEEK_MODEL:-deepseek-v4-pro}"
 DEEPSEEK_BASE_URL="${DEEPSEEK_ANTHROPIC_BASE_URL:-https://api.deepseek.com/anthropic}"
-SKIP_MIMO_CONFIG="${SKIP_MIMO_CONFIG:-0}"
+SKIP_PROVIDER_CONFIG="${SKIP_PROVIDER_CONFIG:-${SKIP_MIMO_CONFIG:-0}}"
 
 for arg in "$@"; do
   case "${arg}" in
     --skip-api-key|--skip-mimo-config)
-      SKIP_MIMO_CONFIG="1"
+      SKIP_PROVIDER_CONFIG="1"
       ;;
     --help|-h)
       echo "Usage: install.sh [--skip-api-key]"
       echo ""
       echo "Environment:"
-      echo "  MIMO_API_KEY                 Xiaomi MiMo API key"
-      echo "  MIMO_MODEL                   Model name, default: mimo-v2.5-pro"
-      echo "  MIMO_ANTHROPIC_BASE_URL      API base URL; auto-detected for sk-/tp- keys if unset"
-      echo "  DEEPSEEK_API_KEY             Optional DeepSeek API key for provider switching"
+      echo "  DEEPSEEK_API_KEY             DeepSeek API key"
+      echo "  DEEPSEEK_MODEL               Model name, default: deepseek-v4-pro"
       echo "  DEEPSEEK_ANTHROPIC_BASE_URL  DeepSeek API base URL"
-      echo "  SKIP_MIMO_CONFIG=1           Install tools only; configure API later"
+      echo "  MIMO_API_KEY                 Optional Xiaomi MiMo API key for provider switching"
+      echo "  MIMO_ANTHROPIC_BASE_URL      API base URL; auto-detected for sk-/tp- keys if unset"
+      echo "  SKIP_PROVIDER_CONFIG=1       Install tools only; configure API later"
       exit 0
       ;;
   esac
@@ -153,10 +153,10 @@ import time
 settings_file = os.environ["SETTINGS_FILE"]
 claude_json_file = os.environ["CLAUDE_JSON_FILE"]
 provider_file = os.environ["PROVIDER_FILE"]
-token = os.environ["MIMO_API_KEY"]
-deepseek_token = os.environ.get("DEEPSEEK_API_KEY", "")
+token = os.environ["DEEPSEEK_API_KEY"]
+mimo_token = os.environ.get("MIMO_API_KEY", "")
 model = os.environ["MODEL"]
-base_url = os.environ["BASE_URL"]
+base_url = os.environ["DEEPSEEK_BASE_URL"]
 deepseek_base_url = os.environ["DEEPSEEK_BASE_URL"]
 
 def read_json(path, label):
@@ -190,18 +190,18 @@ with open(settings_file, "w", encoding="utf-8") as handle:
 
 provider_config = read_json(provider_file, "provider config")
 provider_config["providers"] = provider_config.get("providers", {})
-provider_config["providers"]["mimo"] = {
-    **provider_config["providers"].get("mimo", {}),
-    "baseUrl": base_url,
+provider_config["providers"]["deepseek"] = {
+    **provider_config["providers"].get("deepseek", {}),
+    "baseUrl": deepseek_base_url,
     "authToken": token,
 }
-if deepseek_token:
-    provider_config["providers"]["deepseek"] = {
-        **provider_config["providers"].get("deepseek", {}),
-        "baseUrl": deepseek_base_url,
-        "authToken": deepseek_token,
+if mimo_token:
+    provider_config["providers"]["mimo"] = {
+        **provider_config["providers"].get("mimo", {}),
+        "baseUrl": os.environ["MIMO_BASE_URL"],
+        "authToken": mimo_token,
     }
-provider_config["activeProvider"] = "mimo"
+provider_config["activeProvider"] = "deepseek"
 provider_config["activeModel"] = model
 with open(provider_file, "w", encoding="utf-8") as handle:
     json.dump(provider_config, handle, indent=2)
@@ -223,10 +223,10 @@ const fs = require("fs");
 const settingsFile = process.env.SETTINGS_FILE;
 const claudeJsonFile = process.env.CLAUDE_JSON_FILE;
 const providerFile = process.env.PROVIDER_FILE;
-const token = process.env.MIMO_API_KEY;
-const deepseekToken = process.env.DEEPSEEK_API_KEY || "";
+const token = process.env.DEEPSEEK_API_KEY;
+const mimoToken = process.env.MIMO_API_KEY || "";
 const model = process.env.MODEL;
-const baseUrl = process.env.BASE_URL;
+const baseUrl = process.env.DEEPSEEK_BASE_URL;
 const deepseekBaseUrl = process.env.DEEPSEEK_BASE_URL;
 
 function readJson(file, label) {
@@ -258,19 +258,19 @@ fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`, { mode:
 
 const providerConfig = readJson(providerFile, "provider config");
 providerConfig.providers = providerConfig.providers || {};
-providerConfig.providers.mimo = {
-  ...(providerConfig.providers.mimo || {}),
-  baseUrl,
+providerConfig.providers.deepseek = {
+  ...(providerConfig.providers.deepseek || {}),
+  baseUrl: deepseekBaseUrl,
   authToken: token,
 };
-if (deepseekToken) {
-  providerConfig.providers.deepseek = {
-    ...(providerConfig.providers.deepseek || {}),
-    baseUrl: deepseekBaseUrl,
-    authToken: deepseekToken,
+if (mimoToken) {
+  providerConfig.providers.mimo = {
+    ...(providerConfig.providers.mimo || {}),
+    baseUrl: process.env.MIMO_BASE_URL,
+    authToken: mimoToken,
   };
 }
-providerConfig.activeProvider = "mimo";
+providerConfig.activeProvider = "deepseek";
 providerConfig.activeModel = model;
 fs.writeFileSync(providerFile, `${JSON.stringify(providerConfig, null, 2)}\n`, { mode: 0o600 });
 
@@ -291,8 +291,8 @@ NODE
   cat > "${SETTINGS_FILE}" <<EOF
 {
   "env": {
-    "ANTHROPIC_BASE_URL": "${BASE_URL}",
-    "ANTHROPIC_API_KEY": "${MIMO_API_KEY}",
+    "ANTHROPIC_BASE_URL": "${DEEPSEEK_BASE_URL}",
+    "ANTHROPIC_API_KEY": "${DEEPSEEK_API_KEY}",
     "ANTHROPIC_MODEL": "${MODEL}",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "${MODEL}",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "${MODEL}",
@@ -304,15 +304,36 @@ EOF
   cat > "${PROVIDER_FILE}" <<EOF
 {
   "providers": {
-    "mimo": {
-      "baseUrl": "${BASE_URL}",
-      "authToken": "${MIMO_API_KEY}"
+    "deepseek": {
+      "baseUrl": "${DEEPSEEK_BASE_URL}",
+      "authToken": "${DEEPSEEK_API_KEY}"
     }
   },
-  "activeProvider": "mimo",
+  "activeProvider": "deepseek",
   "activeModel": "${MODEL}"
 }
 EOF
+  if [ -n "${MIMO_API_KEY:-}" ]; then
+    python3 - <<'PY'
+import json
+import os
+
+provider_file = os.environ["PROVIDER_FILE"]
+mimo_token = os.environ["MIMO_API_KEY"]
+mimo_base_url = os.environ["MIMO_BASE_URL"]
+with open(provider_file, encoding="utf-8") as handle:
+    data = json.load(handle)
+data.setdefault("providers", {})
+data["providers"]["mimo"] = {
+    **data["providers"].get("mimo", {}),
+    "baseUrl": mimo_base_url,
+    "authToken": mimo_token,
+}
+with open(provider_file, "w", encoding="utf-8") as handle:
+    json.dump(data, handle, indent=2)
+    handle.write("\n")
+PY
+  fi
 }
 
 install_claude_code() {
@@ -475,30 +496,30 @@ install_npm_for_fallback() {
   echo "No supported package manager found for automatic npm installation." >&2
 }
 
-if [ "${SKIP_MIMO_CONFIG}" != "1" ] && [ -z "${MIMO_API_KEY:-}" ]; then
+if [ "${SKIP_PROVIDER_CONFIG}" != "1" ] && [ -z "${DEEPSEEK_API_KEY:-}" ]; then
   if [ ! -r /dev/tty ]; then
-    echo "MiMo API key is required. Set MIMO_API_KEY for non-interactive installs."
-    echo "Or set SKIP_MIMO_CONFIG=1 to install Claude Code and configure the API later."
+    echo "DeepSeek API key is required. Set DEEPSEEK_API_KEY for non-interactive installs."
+    echo "Or set SKIP_PROVIDER_CONFIG=1 to install Claude Code and configure the API later."
     exit 1
   fi
-  printf "Enter your MiMo API key: "
+  printf "Enter your DeepSeek API key: "
   stty -echo < /dev/tty
-  read -r MIMO_API_KEY < /dev/tty
+  read -r DEEPSEEK_API_KEY < /dev/tty
   stty echo < /dev/tty
   printf "\n"
 fi
 
-if [ "${SKIP_MIMO_CONFIG}" != "1" ] && [ -z "${MIMO_API_KEY:-}" ]; then
-  echo "MiMo API key is required."
+if [ "${SKIP_PROVIDER_CONFIG}" != "1" ] && [ -z "${DEEPSEEK_API_KEY:-}" ]; then
+  echo "DeepSeek API key is required."
   exit 1
 fi
 
-BASE_URL="$(get_mimo_base_url "${MIMO_API_KEY:-}")"
+MIMO_BASE_URL="$(get_mimo_base_url "${MIMO_API_KEY:-}")"
 
 echo "Installing or updating Claude Code..."
 install_claude_code
 
-if [ "${SKIP_MIMO_CONFIG}" != "1" ]; then
+if [ "${SKIP_PROVIDER_CONFIG}" != "1" ]; then
   SETTINGS_DIR="${HOME}/.claude"
   SETTINGS_FILE="${SETTINGS_DIR}/settings.json"
   CLAUDE_JSON_FILE="${HOME}/.claude.json"
@@ -508,19 +529,19 @@ if [ "${SKIP_MIMO_CONFIG}" != "1" ]; then
   export SETTINGS_FILE
   export CLAUDE_JSON_FILE
   export PROVIDER_FILE
-  export MIMO_API_KEY
-  export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-}"
+  export MIMO_API_KEY="${MIMO_API_KEY:-}"
+  export DEEPSEEK_API_KEY
   export MODEL
-  export BASE_URL
+  export MIMO_BASE_URL
   export DEEPSEEK_BASE_URL
 
   write_initial_config
 
   chmod 600 "${SETTINGS_FILE}" "${CLAUDE_JSON_FILE}" "${PROVIDER_FILE}" || true
 
-  echo "Done. Claude Code is configured for MiMo model: ${MODEL}"
+  echo "Done. Claude Code is configured for DeepSeek model: ${MODEL}"
 else
-  echo "Skipped MiMo API configuration."
+  echo "Skipped provider API configuration."
 fi
 echo "Run: claude"
 

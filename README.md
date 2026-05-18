@@ -1,6 +1,6 @@
 # Claude Code MiMo / DeepSeek Installer
 
-一键安装 Claude Code，并配置 Xiaomi MiMo 或 DeepSeek 的 Anthropic-compatible API。API key 只保存在本机，不会上传到 GitHub。
+一键安装 Claude Code，并配置 DeepSeek 或 Xiaomi MiMo 的 Anthropic-compatible API。默认先配置 DeepSeek。API key 只保存在本机，不会上传到 GitHub。
 
 ## 快速安装
 
@@ -19,15 +19,20 @@ irm https://github.com/BH4ME/claude-code-mimo-deepseek-installer/releases/latest
 非交互安装:
 
 ```bash
-MIMO_API_KEY="sk-or-tp-..." DEEPSEEK_API_KEY="sk-..." ./install.sh
+DEEPSEEK_API_KEY="sk-..." ./install.sh
 ```
 
 PowerShell:
 
 ```powershell
-$env:MIMO_API_KEY="sk-or-tp-..."
 $env:DEEPSEEK_API_KEY="sk-..."
 .\install.ps1
+```
+
+如果你还想一起保存 MiMo key，后面再加上:
+
+```bash
+MIMO_API_KEY="sk-or-tp-..." DEEPSEEK_API_KEY="sk-..." ./install.sh
 ```
 
 只安装 Claude Code 和切换命令，暂不写 key:
@@ -36,7 +41,7 @@ $env:DEEPSEEK_API_KEY="sk-..."
 ./install.sh --skip-api-key
 ```
 
-默认 MiMo 模型是 `mimo-v2.5-pro`。可以用 `MIMO_MODEL` 覆盖。
+默认安装完成后会切到 `deepseek-v4-pro`。可以用 `DEEPSEEK_MODEL` 覆盖。
 
 ## 切换
 

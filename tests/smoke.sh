@@ -65,6 +65,7 @@ case_dir="${tmp}/deepseek"
 mkdir -p "${case_dir}"
 DEEPSEEK_API_KEY="sk-deepseek" run_provider "${case_dir}" deepseek pro >/dev/null
 [ "$(json_value "${case_dir}/.claude/settings.json" "env.ANTHROPIC_MODEL")" = "deepseek-v4-pro" ] || fail "deepseek pro should map to deepseek-v4-pro"
+[ "$(json_value "${case_dir}/.claude/settings.json" "env.ANTHROPIC_BASE_URL")" = "https://api.deepseek.com/anthropic" ] || fail "deepseek should use default API base URL"
 
 case_dir="${tmp}/mimo-fallback"
 mkdir -p "${case_dir}"
@@ -98,6 +99,8 @@ esac
 
 grep -q "ensure_shell_profile_path" "$ROOT_DIR/install.sh" || fail "install.sh should update shell profile PATH"
 grep -q "claude-provider" "$ROOT_DIR/install.sh" || fail "install.sh should install claude-provider"
+grep -q 'Enter your DeepSeek API key' "$ROOT_DIR/install.sh" || fail "install.sh should prompt for DeepSeek API key by default"
+grep -q 'activeProvider" = "deepseek"\|activeProvider.: "deepseek"' "$ROOT_DIR/install.sh" || fail "install.sh should default active provider to deepseek"
 
 python3 - "$ROOT_DIR" <<'PY'
 import base64
